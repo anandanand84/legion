@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::arena::OrderArena;
 use crate::models::{
-    BookDepth, BookLevel, FillMetadata, OrderEvent, OrderType, Side, Trade,
+    BookDepth, BookLevel, FillMetadata, OrderEvent, OrderType, Side, Trade, OrderId, Qty, Price,
 };
 
 const DEFAULT_ARENA_CAPACITY: usize = 10_000;
@@ -14,11 +14,11 @@ const DEFAULT_QUEUE_CAPACITY: usize = 10;
 #[derive(Debug)]
 pub struct OrderBook {
     last_trade: Option<Trade>,
-    traded_volume: u64,
-    min_ask: Option<u64>,
-    max_bid: Option<u64>,
-    asks: BTreeMap<u64, Vec<usize>>,
-    bids: BTreeMap<u64, Vec<usize>>,
+    traded_volume: Qty,
+    min_ask: Option<Price>,
+    max_bid: Option<Price>,
+    asks: BTreeMap<Price, Vec<OrderId>>,
+    bids: BTreeMap<Price, Vec<OrderId>>,
     arena: OrderArena,
     default_queue_capacity: usize,
     track_stats: bool,
@@ -67,32 +67,32 @@ impl OrderBook {
 
     #[cfg(test)]
     #[doc(hidden)]
-    pub fn _asks(&self) -> BTreeMap<u64, Vec<usize>> {
+    pub fn _asks(&self) -> BTreeMap<Price, Vec<OrderId>> {
         self.asks.clone()
     }
 
     #[cfg(test)]
     #[doc(hidden)]
-    pub fn _bids(&self) -> BTreeMap<u64, Vec<usize>> {
+    pub fn _bids(&self) -> BTreeMap<Price, Vec<OrderId>> {
         self.bids.clone()
     }
 
     /// Return the lowest ask price, if present.
     #[inline(always)]
-    pub fn min_ask(&self) -> Option<u64> {
+    pub fn min_ask(&self) -> Option<Price> {
         self.min_ask
     }
 
     /// Return the highest bid price, if present.
     #[inline(always)]
-    pub fn max_bid(&self) -> Option<u64> {
+    pub fn max_bid(&self) -> Option<Price> {
         self.max_bid
     }
 
     /// Return the difference of the lowest ask and highest bid, if both are
     /// present.
     #[inline(always)]
-    pub fn spread(&self) -> Option<u64> {
+    pub fn spread(&self) -> Option<Price> {
         match (self.max_bid, self.min_ask) {
             (Some(b), Some(a)) => Some(a - b),
             _ => None,
@@ -111,7 +111,7 @@ impl OrderBook {
     /// Return the total traded volume for all the trades that occurred while
     /// the stats tracking was active.
     #[inline(always)]
-    pub fn traded_volume(&self) -> u64 {
+    pub fn traded_volume(&self) -> Qty {
         self.traded_volume
     }
 
@@ -261,27 +261,27 @@ impl OrderBook {
         }
     }
 
-    fn cancel(&mut self, id: u128) -> bool {
-        if let Some((price, idx)) = self.arena.get(id) {
-            if let Some(ref mut queue) = self.asks.get_mut(&price) {
-                if let Some(i) = queue.iter().position(|i| *i == idx) {
+    fn cancel(&mut self, id: OrderId) -> bool {
+        if let Some(order) = self.arena.get(id) {
+            if let Some(ref mut queue) = self.asks.get_mut(&order.price) {
+                if let Some(i) = queue.iter().position(|i| *i == id) {
                     queue.remove(i);
                 }
-                self.update_min_ask();
             }
-            if let Some(ref mut queue) = self.bids.get_mut(&price) {
-                if let Some(i) = queue.iter().position(|i| *i == idx) {
+            if let Some(ref mut queue) = self.bids.get_mut(&order.price) {
+                if let Some(i) = queue.iter().position(|i| *i == id) {
                     queue.remove(i);
                 }
-                self.update_max_bid();
             }
         }
+        self.update_min_ask();
+        self.update_max_bid();
         self.arena.delete(&id)
     }
 
     fn market(
         &mut self,
-        id: u128,
+        id: OrderId,
         side: Side,
         qty: u64,
     ) -> (Vec<FillMetadata>, bool, u64) {
@@ -299,7 +299,7 @@ impl OrderBook {
 
     fn limit(
         &mut self,
-        id: u128,
+        id: OrderId,
         side: Side,
         qty: u64,
         price: u64,
@@ -319,7 +319,7 @@ impl OrderBook {
                     self.bids
                         .entry(price)
                         .or_insert_with(|| Vec::with_capacity(queue_capacity))
-                        .push(index);
+                        .push(id);
                     match self.max_bid {
                         None => {
                             self.max_bid = Some(price);
@@ -346,7 +346,7 @@ impl OrderBook {
                     self.asks
                         .entry(price)
                         .or_insert_with(|| Vec::with_capacity(queue_capacity))
-                        .push(index);
+                        .push(id);
                     match self.min_ask {
                         None => {
                             self.min_ask = Some(price);
@@ -365,7 +365,7 @@ impl OrderBook {
 
     fn match_with_asks(
         &mut self,
-        id: u128,
+        id: OrderId,
         qty: u64,
         fills: &mut Vec<FillMetadata>,
         limit_price: Option<u64>,
@@ -408,10 +408,10 @@ impl OrderBook {
 
     fn match_with_bids(
         &mut self,
-        id: u128,
-        qty: u64,
+        id: OrderId,
+        qty: Qty,
         fills: &mut Vec<FillMetadata>,
-        limit_price: Option<u64>,
+        limit_price: Option<Price>,
     ) -> u64 {
         let mut remaining_qty = qty;
         let mut update_bid_ask = false;
@@ -462,7 +462,7 @@ impl OrderBook {
 
     fn process_queue(
         arena: &mut OrderArena,
-        opposite_orders: &mut Vec<usize>,
+        opposite_orders: &mut Vec<u128>,
         remaining_qty: u64,
         id: u128,
         side: Side,
@@ -472,11 +472,11 @@ impl OrderBook {
         let mut filled_qty = 0;
         let mut filled_index = None;
 
-        for (index, head_order_idx) in opposite_orders.iter_mut().enumerate() {
+        for (index, head_order_id) in opposite_orders.iter_mut().enumerate() {
             if qty_to_fill == 0 {
                 break;
             }
-            let head_order = &mut arena[*head_order_idx];
+            let head_order = &mut arena[*head_order_id];
             let traded_price = head_order.price;
             let available_qty = head_order.qty;
             if available_qty == 0 {
@@ -550,7 +550,7 @@ mod test {
         (ob, results)
     }
 
-    fn init_book(orders: Vec<(u64, usize)>) -> BTreeMap<u64, Vec<usize>> {
+    fn init_book(orders: Vec<(u64, u128)>) -> BTreeMap<u64, Vec<u128>> {
         let mut bk = BTreeMap::new();
         for (p, i) in orders {
             bk.entry(p)
@@ -561,9 +561,9 @@ mod test {
     }
 
     fn init_book_holes(
-        orders: Vec<(u64, usize)>,
+        orders: Vec<(u64, u128)>,
         holes: Vec<u64>,
-    ) -> BTreeMap<u64, Vec<usize>> {
+    ) -> BTreeMap<u64, Vec<u128>> {
         let mut bk = init_book(orders);
         for h in holes {
             bk.insert(h, Vec::new());
@@ -606,7 +606,7 @@ mod test {
                 assert_eq!(ob.min_ask(), None);
                 assert_eq!(ob.max_bid(), Some(395));
                 assert_eq!(ob._asks(), BTreeMap::new());
-                assert_eq!(ob._bids(), init_book(vec![(395, 9999)]));
+                assert_eq!(ob._bids(), init_book(vec![(395, 0)]));
                 assert_eq!(ob.spread(), None);
                 assert_eq!(ob.traded_volume(), 0);
                 assert_eq!(
@@ -624,7 +624,7 @@ mod test {
             } else {
                 assert_eq!(ob.min_ask(), Some(395));
                 assert_eq!(ob.max_bid(), None);
-                assert_eq!(ob._asks(), init_book(vec![(395, 9999)]));
+                assert_eq!(ob._asks(), init_book(vec![(395, 0)]));
                 assert_eq!(ob._bids(), BTreeMap::new());
                 assert_eq!(ob.spread(), None);
                 assert_eq!(ob.traded_volume(), 0);
@@ -671,8 +671,8 @@ mod test {
                 );
                 assert_eq!(ob.min_ask(), Some(398));
                 assert_eq!(ob.max_bid(), Some(395));
-                assert_eq!(ob._asks(), init_book(vec![(398, 9998)]));
-                assert_eq!(ob._bids(), init_book(vec![(395, 9999)]));
+                assert_eq!(ob._asks(), init_book(vec![(398, 1)]));
+                assert_eq!(ob._bids(), init_book(vec![(395, 0)]));
                 assert_eq!(ob.spread(), Some(3));
                 assert_eq!(ob.traded_volume(), 0);
                 assert_eq!(
@@ -708,7 +708,7 @@ mod test {
                 );
                 assert_eq!(ob.min_ask(), Some(395));
                 assert_eq!(ob.max_bid(), None);
-                assert_eq!(ob._asks(), init_book(vec![(395, 9999)]));
+                assert_eq!(ob._asks(), init_book(vec![(395, 0)]));
                 assert_eq!(ob._bids(), init_book(vec![]));
                 assert_eq!(ob.spread(), None);
                 assert_eq!(ob.traded_volume(), 2);
@@ -766,7 +766,7 @@ mod test {
                 assert_eq!(ob._asks(), BTreeMap::new());
                 assert_eq!(
                     ob._bids(),
-                    init_book(vec![(395, 9999), (395, 9998)])
+                    init_book(vec![(395, 0), (395, 1)])
                 );
                 assert_eq!(ob.spread(), None);
                 assert_eq!(ob.traded_volume(), 0);
@@ -787,7 +787,7 @@ mod test {
                 assert_eq!(ob.max_bid(), None);
                 assert_eq!(
                     ob._asks(),
-                    init_book(vec![(395, 9999), (395, 9998)])
+                    init_book(vec![(395, 0), (395, 1)])
                 );
                 assert_eq!(ob._bids(), BTreeMap::new());
                 assert_eq!(ob.spread(), None);
@@ -838,7 +838,7 @@ mod test {
                 assert_eq!(ob._asks(), BTreeMap::new());
                 assert_eq!(
                     ob._bids(),
-                    init_book(vec![(398, 9998), (395, 9999)])
+                    init_book(vec![(398, 1), (395, 0)])
                 );
                 assert_eq!(ob.spread(), None);
             } else {
@@ -846,7 +846,7 @@ mod test {
                 assert_eq!(ob.max_bid(), None);
                 assert_eq!(
                     ob._asks(),
-                    init_book(vec![(398, 9998), (395, 9999)])
+                    init_book(vec![(398, 1), (395, 0)])
                 );
                 assert_eq!(ob._bids(), BTreeMap::new());
                 assert_eq!(ob.spread(), None);
@@ -888,10 +888,10 @@ mod test {
                 );
                 assert_eq!(ob.min_ask(), Some(399));
                 assert_eq!(ob.max_bid(), Some(398));
-                assert_eq!(ob._asks(), init_book(vec![(399, 9998)]));
+                assert_eq!(ob._asks(), init_book(vec![(399, 1)]));
                 assert_eq!(
                     ob._bids(),
-                    init_book(vec![(398, 9997), (395, 9999)])
+                    init_book(vec![(398, 2), (395, 0)])
                 );
                 assert_eq!(ob.spread(), Some(1));
             } else {
@@ -918,7 +918,7 @@ mod test {
                 assert_eq!(ob.max_bid(), None);
                 assert_eq!(
                     ob._asks(),
-                    init_book(vec![(398, 9998), (395, 9999)])
+                    init_book(vec![(398, 2), (395, 0)])
                 );
                 assert_eq!(ob._bids(), init_book(vec![]));
                 assert_eq!(ob.spread(), None);
@@ -982,10 +982,10 @@ mod test {
                 );
                 assert_eq!(ob.min_ask(), Some(399));
                 assert_eq!(ob.max_bid(), Some(398));
-                assert_eq!(ob._asks(), init_book(vec![(399, 9998)]));
+                assert_eq!(ob._asks(), init_book(vec![(399, 1)]));
                 assert_eq!(
                     ob._bids(),
-                    init_book(vec![(398, 9997), (395, 9999)])
+                    init_book(vec![(398, 2), (395, 0)])
                 );
                 assert_eq!(ob.spread(), Some(1));
             } else {
@@ -1027,7 +1027,7 @@ mod test {
                 assert_eq!(ob.max_bid(), None);
                 assert_eq!(
                     ob._asks(),
-                    init_book(vec![(398, 9998), (395, 9999)])
+                    init_book(vec![(398, 2), (395, 0)])
                 );
                 assert_eq!(ob._bids(), init_book(vec![]));
                 assert_eq!(ob.spread(), None);
@@ -1091,10 +1091,10 @@ mod test {
                 );
                 assert_eq!(ob.min_ask(), Some(399));
                 assert_eq!(ob.max_bid(), Some(395));
-                assert_eq!(ob._asks(), init_book(vec![(399, 9998)]));
+                assert_eq!(ob._asks(), init_book(vec![(399, 1)]));
                 assert_eq!(
                     ob._bids(),
-                    init_book_holes(vec![(395, 9999)], vec![398])
+                    init_book_holes(vec![(395, 0)], vec![398])
                 );
                 assert_eq!(ob.spread(), Some(4));
             } else {
@@ -1136,7 +1136,7 @@ mod test {
                 assert_eq!(ob.max_bid(), None);
                 assert_eq!(
                     ob._asks(),
-                    init_book(vec![(395, 9999), (398, 9998)])
+                    init_book(vec![(395, 0), (398, 2)])
                 );
                 assert_eq!(ob._bids(), init_book(vec![]));
                 assert_eq!(ob.spread(), None);
@@ -1202,11 +1202,11 @@ mod test {
                 assert_eq!(ob.max_bid(), Some(395));
                 assert_eq!(
                     ob._asks(),
-                    init_book(vec![(399, 9998), (397, 9996)])
+                    init_book(vec![(399, 1), (397, 3)])
                 );
                 assert_eq!(
                     ob._bids(),
-                    init_book_holes(vec![(395, 9999)], vec![398])
+                    init_book_holes(vec![(395, 0)], vec![398])
                 );
                 assert_eq!(ob.spread(), Some(2));
             } else {
@@ -1248,7 +1248,7 @@ mod test {
                 assert_eq!(ob.max_bid(), None);
                 assert_eq!(
                     ob._asks(),
-                    init_book(vec![(395, 9999), (398, 9998)])
+                    init_book(vec![(395, 0), (398, 2)])
                 );
                 assert_eq!(ob._bids(), init_book(vec![]));
                 assert_eq!(ob.spread(), None);
@@ -1335,7 +1335,7 @@ mod test {
                 );
                 assert_eq!(ob.min_ask(), Some(399));
                 assert_eq!(ob.max_bid(), None);
-                assert_eq!(ob._asks(), init_book(vec![(399, 9998)]));
+                assert_eq!(ob._asks(), init_book(vec![(399, 1)]));
                 assert_eq!(ob._bids(), init_book_holes(vec![], vec![395, 398]));
                 assert_eq!(ob.spread(), None);
             } else {
@@ -1457,10 +1457,10 @@ mod test {
                 );
                 assert_eq!(ob.min_ask(), Some(399));
                 assert_eq!(ob.max_bid(), Some(395));
-                assert_eq!(ob._asks(), init_book(vec![(399, 9998)]));
+                assert_eq!(ob._asks(), init_book(vec![(399, 1)]));
                 assert_eq!(
                     ob._bids(),
-                    init_book_holes(vec![(395, 9999)], vec![398])
+                    init_book_holes(vec![(395, 0)], vec![398])
                 );
                 assert_eq!(ob.spread(), Some(4));
             } else {
@@ -1502,7 +1502,7 @@ mod test {
                 assert_eq!(ob.max_bid(), None);
                 assert_eq!(
                     ob._asks(),
-                    init_book(vec![(395, 9999), (398, 9998)])
+                    init_book(vec![(395, 0), (398, 2)])
                 );
                 assert_eq!(ob._bids(), init_book(vec![]));
                 assert_eq!(ob.spread(), None);
@@ -1583,10 +1583,10 @@ mod test {
                 assert_eq!(result, OrderEvent::Canceled { id: 0 });
                 assert_eq!(ob.min_ask(), Some(399));
                 assert_eq!(ob.max_bid(), Some(398));
-                assert_eq!(ob._asks(), init_book(vec![(399, 9998)]));
+                assert_eq!(ob._asks(), init_book(vec![(399, 1)]));
                 assert_eq!(
                     ob._bids(),
-                    init_book_holes(vec![(398, 9997)], vec![395])
+                    init_book_holes(vec![(398, 2)], vec![395])
                 );
                 assert_eq!(ob.spread(), Some(1));
             } else {
@@ -1614,7 +1614,7 @@ mod test {
                 assert_eq!(ob.max_bid(), None);
                 assert_eq!(
                     ob._asks(),
-                    init_book_holes(vec![(398, 9998)], vec![395])
+                    init_book_holes(vec![(398, 2)], vec![395])
                 );
                 assert_eq!(ob._bids(), init_book(vec![]));
                 assert_eq!(ob.spread(), None);
