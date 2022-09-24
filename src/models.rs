@@ -21,7 +21,7 @@ impl std::ops::Not for Side {
 
 pub type Price = u64;
 pub type Qty = u64;
-pub type OrderId = u128;
+pub type OrderId = u64;
 
 /// An order to be executed by the order book.
 #[derive(Debug, Copy, Clone)]

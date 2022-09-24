@@ -462,9 +462,9 @@ impl OrderBook {
 
     fn process_queue(
         arena: &mut OrderArena,
-        opposite_orders: &mut Vec<u128>,
+        opposite_orders: &mut Vec<OrderId>,
         remaining_qty: u64,
-        id: u128,
+        id: u64,
         side: Side,
         fills: &mut Vec<FillMetadata>,
     ) -> u64 {
@@ -550,7 +550,7 @@ mod test {
         (ob, results)
     }
 
-    fn init_book(orders: Vec<(u64, u128)>) -> BTreeMap<u64, Vec<u128>> {
+    fn init_book(orders: Vec<(u64, u64)>) -> BTreeMap<u64, Vec<u64>> {
         let mut bk = BTreeMap::new();
         for (p, i) in orders {
             bk.entry(p)
@@ -561,9 +561,9 @@ mod test {
     }
 
     fn init_book_holes(
-        orders: Vec<(u64, u128)>,
+        orders: Vec<(u64, u64)>,
         holes: Vec<u64>,
-    ) -> BTreeMap<u64, Vec<u128>> {
+    ) -> BTreeMap<u64, Vec<u64>> {
         let mut bk = init_book(orders);
         for h in holes {
             bk.insert(h, Vec::new());
