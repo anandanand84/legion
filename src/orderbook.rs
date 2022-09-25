@@ -65,13 +65,11 @@ impl OrderBook {
         }
     }
 
-    #[cfg(test)]
     #[doc(hidden)]
     pub fn _asks(&self) -> Vec<(Price, Vec<OrderId>)> {
         self.asks.clone().into_iter().collect()
     }
 
-    #[cfg(test)]
     #[doc(hidden)]
     pub fn _bids(&self) -> Vec<(Price, Vec<OrderId>)> {
         self.bids.clone().into_iter().collect()
@@ -215,7 +213,7 @@ impl OrderBook {
             OrderType::Market { id, side, qty } => {
                 let (fills, partial, filled_qty) = self.market(id, side, qty);
                 if fills.is_empty() {
-                    OrderEvent::Unfilled { id }
+                    OrderEvent::Rejected { id }
                 } else if partial {
                     OrderEvent::PartiallyFilled {
                         id,
@@ -314,7 +312,7 @@ impl OrderBook {
                     self.match_with_asks(id, qty, &mut fills, Some(price));
                 if remaining_qty > 0 {
                     partial = true;
-                    let index = self.arena.insert(id, price, remaining_qty);
+                    self.arena.insert(id, price, remaining_qty);
                     let queue_capacity = self.default_queue_capacity;
                     self.bids
                         .entry(price)
@@ -336,7 +334,7 @@ impl OrderBook {
                     self.match_with_bids(id, qty, &mut fills, Some(price));
                 if remaining_qty > 0 {
                     partial = true;
-                    let index = self.arena.insert(id, price, remaining_qty);
+                    self.arena.insert(id, price, remaining_qty);
                     if let Some(a) = self.min_ask {
                         if price < a {
                             self.min_ask = Some(price);
@@ -1261,7 +1259,7 @@ mod test {
     }
 
     #[test]
-    fn market_order_unfilled() {
+    fn market_order_rejected() {
         for (_, ask_bid) in &BID_ASK_COMBINATIONS {
             let (mut ob, _) = init_ob(vec![]);
             let result = ob.execute(OrderType::Market {
@@ -1270,7 +1268,7 @@ mod test {
                 qty: 5,
             });
 
-            assert_eq!(result, OrderEvent::Unfilled { id: 0 });
+            assert_eq!(result, OrderEvent::Rejected { id: 0 });
         }
     }
 

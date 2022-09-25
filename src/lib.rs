@@ -6,7 +6,7 @@
 //!
 //! let mut ob = OrderBook::default();
 //! let event = ob.execute(OrderType::Market { id: 0, qty: 1, side: Side::Bid });
-//! assert_eq!(event, OrderEvent::Unfilled { id: 0 });
+//! assert_eq!(event, OrderEvent::Rejected { id: 0 });
 //!
 //! let event = ob.execute(OrderType::Limit { id: 1, price: 120, qty: 3, side: Side::Ask });
 //! assert_eq!(event, OrderEvent::Placed { id: 1 });
@@ -41,6 +41,8 @@
 mod arena;
 mod models;
 mod orderbook;
+mod utils;
+mod wasm;
 
 pub use models::{
     BookDepth, BookLevel, FillMetadata, OrderEvent, OrderType, Side, Trade,
