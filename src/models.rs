@@ -9,8 +9,10 @@ use strum_macros::{EnumString, FromRepr};
 pub enum Side {
     /// The bid (or buy) side.
     #[default]
-    Bid=0,
+    #[strum(serialize = "bid", serialize = "BID", serialize = "Bid")]
+    Bid,
     /// The ask (or sell) side.
+    #[strum(serialize = "ask", serialize = "ASK", serialize = "Ask")]
     Ask,
 }
 
@@ -113,17 +115,17 @@ impl FromStr for OrderType {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let fields = s.split(",").collect::<Vec<&str>>();
         let total_fields = fields.len();
-        if  total_fields < 1 {
+        if  total_fields < 2 {
             return Err(OrderParseError::InvalidFieldSize)
         }
-        let ordertype = fields[0];
+        let ordertype = fields[1];
         match ordertype {
             "market" => {
                 if total_fields != 4 {
                     return Err(OrderParseError::InvalidFieldSize)
                 }
                 Ok(OrderType::Market { 
-                    id: fields[1].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
+                    id: fields[0].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
                     side: Side::from_str(fields[2]).map_err(|_| OrderParseError::InvalidSide)?, 
                     qty: fields[3].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)? , 
                 })
@@ -133,7 +135,7 @@ impl FromStr for OrderType {
                     return Err(OrderParseError::InvalidFieldSize)
                 }
                 Ok(OrderType::Limit { 
-                    id: fields[1].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
+                    id: fields[0].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
                     side: Side::from_str(fields[2]).map_err(|_| OrderParseError::InvalidSide)?, 
                     qty: fields[3].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
                     price: fields[4].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?, 
@@ -144,7 +146,7 @@ impl FromStr for OrderType {
                     return Err(OrderParseError::InvalidFieldSize)
                 }
                 Ok(OrderType::Cancel { 
-                    id: fields[1].parse::<u64>().unwrap()
+                    id: fields[0].parse::<u64>().unwrap()
                 })
             },
             _ => {
@@ -165,9 +167,9 @@ pub enum OrderEvent {
         /// The ID of the order this event is referring to.
         id: OrderId
     },
-    /// Indicating that the corresponding order was placed on the order book. It
+    /// Indicating that the corresponding order is open on the order book. It
     /// is only send in response to limit orders.
-    Placed {
+    Open {
         /// The ID of the order this event is referring to.
         id: OrderId,
     },
@@ -222,7 +224,7 @@ pub struct FillMetadata {
 /// the same price points are merged into a single [`BookLevel`] struct.
 ///
 /// [`BookLevel`]: /struct.BookLevel.html
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BookDepth {
     /// The requested level. This field will always contain the level that was
     /// requested, even if some or all levels are empty.
@@ -235,12 +237,14 @@ pub struct BookDepth {
 
 /// A single level in the order book. This struct is used both for the bid and
 /// ask side.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BookLevel {
     /// The price point this level represents.
     pub price: Price,
     /// The total quantity of all orders resting at the specified price point.
     pub qty: Qty,
+    /// Orders at this level.
+    pub orders: Vec<LimitOrder>
 }
 
 /// A trade that happened as part of the matching process.
@@ -257,7 +261,7 @@ pub struct Trade {
     pub last_qty: Qty,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct LimitOrder {
     pub id: OrderId,
     pub qty: Qty,

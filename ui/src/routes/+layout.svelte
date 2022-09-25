@@ -1,6 +1,6 @@
 <script lang="ts">
   import "../app.postcss";
-  import init, { greet, get_book_state } from "legion";
+  import init from "legion";
   let initialized = false;
   init().then(() => {
     initialized = true;

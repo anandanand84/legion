@@ -2,8 +2,10 @@
     import * as legion from "legion";
 
     console.log(legion);
-    let status = legion.place_limit(1n, 0, 2n, 20000n);
-    console.log(status);
+    // let status = legion.place_limit(1n, "BID", 2n, 20000n);
+    // console.log(status);
+    let state = legion.add_random_orders();
+    console.log(state);
     let book = legion.get_book_state();
 
     console.log("book", book);

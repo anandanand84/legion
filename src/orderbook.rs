@@ -119,7 +119,7 @@ impl OrderBook {
     ///
     /// [`BookDepth`]: struct.BookDepth.html
     /// [`BookLevel`]: struct.BookLevel.html
-    pub fn depth(&self, levels: usize) -> BookDepth {
+    pub fn depth(&self, levels: usize, include_orders: bool) -> BookDepth {
         let mut asks: Vec<BookLevel> = Vec::with_capacity(levels);
         let mut bids: Vec<BookLevel> = Vec::with_capacity(levels);
 
@@ -132,6 +132,7 @@ impl OrderBook {
                 asks.push(BookLevel {
                     price: *ask_price,
                     qty,
+                    orders: if include_orders { queue.iter().map(|order_id| self.arena[*order_id].clone()).collect() } else { vec![]}
                 });
             }
         }
@@ -145,6 +146,7 @@ impl OrderBook {
                 bids.push(BookLevel {
                     price: *bid_price,
                     qty,
+                    orders: if include_orders { queue.iter().map(|order_id| self.arena[*order_id].clone()).collect() } else { vec![]}
                 });
             }
         }
@@ -237,7 +239,7 @@ impl OrderBook {
                 let (fills, partial, filled_qty) =
                     self.limit(id, side, qty, price);
                 if fills.is_empty() {
-                    OrderEvent::Placed { id }
+                    OrderEvent::Open { id }
                 } else if partial {
                     OrderEvent::PartiallyFilled {
                         id,
@@ -584,7 +586,7 @@ mod test {
         assert_eq!(ob.spread(), None);
         assert_eq!(ob.traded_volume(), 0);
         assert_eq!(
-            ob.depth(2),
+            ob.depth(2, false),
             BookDepth {
                 levels: 2,
                 asks: Vec::new(),
@@ -603,7 +605,7 @@ mod test {
                 qty: 12,
                 price: 395,
             }]);
-            assert_eq!(results, vec![OrderEvent::Placed { id: 0 }]);
+            assert_eq!(results, vec![OrderEvent::Open { id: 0 }]);
             if *bid_ask == Side::Bid {
                 assert_eq!(ob.min_ask(), None);
                 assert_eq!(ob.max_bid(), Some(395));
@@ -612,13 +614,14 @@ mod test {
                 assert_eq!(ob.spread(), None);
                 assert_eq!(ob.traded_volume(), 0);
                 assert_eq!(
-                    ob.depth(3),
+                    ob.depth(3, false),
                     BookDepth {
                         levels: 3,
                         asks: Vec::new(),
                         bids: vec![BookLevel {
                             price: 395,
-                            qty: 12
+                            qty: 12,
+                            orders: vec![]
                         }],
                     }
                 );
@@ -631,12 +634,13 @@ mod test {
                 assert_eq!(ob.spread(), None);
                 assert_eq!(ob.traded_volume(), 0);
                 assert_eq!(
-                    ob.depth(4),
+                    ob.depth(4, false),
                     BookDepth {
                         levels: 4,
                         asks: vec![BookLevel {
                             price: 395,
-                            qty: 12
+                            qty: 12,
+                            orders: vec![]
                         }],
                         bids: Vec::new()
                     }
@@ -667,8 +671,8 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Placed { id: 0 },
-                        OrderEvent::Placed { id: 1 }
+                        OrderEvent::Open { id: 0 },
+                        OrderEvent::Open { id: 1 }
                     ]
                 );
                 assert_eq!(ob.min_ask(), Some(398));
@@ -678,13 +682,14 @@ mod test {
                 assert_eq!(ob.spread(), Some(3));
                 assert_eq!(ob.traded_volume(), 0);
                 assert_eq!(
-                    ob.depth(4),
+                    ob.depth(4, false),
                     BookDepth {
                         levels: 4,
-                        asks: vec![BookLevel { price: 398, qty: 2 }],
+                        asks: vec![BookLevel { price: 398, qty: 2, orders: vec![] }],
                         bids: vec![BookLevel {
                             price: 395,
-                            qty: 12
+                            qty: 12,
+                            orders: vec![]
                         }],
                     }
                 );
@@ -693,7 +698,7 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Placed { id: 0 },
+                        OrderEvent::Open { id: 0 },
                         OrderEvent::Filled {
                             id: 1,
                             filled_qty: 2,
@@ -715,12 +720,13 @@ mod test {
                 assert_eq!(ob.spread(), None);
                 assert_eq!(ob.traded_volume(), 2);
                 assert_eq!(
-                    ob.depth(4),
+                    ob.depth(4, false),
                     BookDepth {
                         levels: 4,
                         asks: vec![BookLevel {
                             price: 395,
                             qty: 10,
+                            orders: vec![]
                         }],
                         bids: Vec::new(),
                     }
@@ -758,8 +764,8 @@ mod test {
             assert_eq!(
                 results,
                 vec![
-                    OrderEvent::Placed { id: 0 },
-                    OrderEvent::Placed { id: 1 }
+                    OrderEvent::Open { id: 0 },
+                    OrderEvent::Open { id: 1 }
                 ]
             );
             if *bid_ask == Side::Bid {
@@ -773,13 +779,14 @@ mod test {
                 assert_eq!(ob.spread(), None);
                 assert_eq!(ob.traded_volume(), 0);
                 assert_eq!(
-                    ob.depth(3),
+                    ob.depth(3, false),
                     BookDepth {
                         levels: 3,
                         asks: Vec::new(),
                         bids: vec![BookLevel {
                             price: 395,
-                            qty: 14
+                            qty: 14,
+                            orders: vec![]
                         }],
                     }
                 );
@@ -795,12 +802,13 @@ mod test {
                 assert_eq!(ob.spread(), None);
                 assert_eq!(ob.traded_volume(), 0);
                 assert_eq!(
-                    ob.depth(3),
+                    ob.depth(3, false),
                     BookDepth {
                         levels: 3,
                         asks: vec![BookLevel {
                             price: 395,
-                            qty: 14
+                            qty: 14,
+                            orders: vec![]
                         }],
                         bids: Vec::new(),
                     }
@@ -830,8 +838,8 @@ mod test {
             assert_eq!(
                 results,
                 vec![
-                    OrderEvent::Placed { id: 0 },
-                    OrderEvent::Placed { id: 1 }
+                    OrderEvent::Open { id: 0 },
+                    OrderEvent::Open { id: 1 }
                 ]
             );
             if *bid_ask == Side::Bid {
@@ -883,9 +891,9 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Placed { id: 0 },
-                        OrderEvent::Placed { id: 1 },
-                        OrderEvent::Placed { id: 2 }
+                        OrderEvent::Open { id: 0 },
+                        OrderEvent::Open { id: 1 },
+                        OrderEvent::Open { id: 2 }
                     ]
                 );
                 assert_eq!(ob.min_ask(), Some(399));
@@ -900,7 +908,7 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Placed { id: 0 },
+                        OrderEvent::Open { id: 0 },
                         OrderEvent::Filled {
                             id: 1,
                             filled_qty: 2,
@@ -913,7 +921,7 @@ mod test {
                                 total_fill: false,
                             }],
                         },
-                        OrderEvent::Placed { id: 2 }
+                        OrderEvent::Open { id: 2 }
                     ]
                 );
                 assert_eq!(ob.min_ask(), Some(395));
@@ -962,9 +970,9 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Placed { id: 0 },
-                        OrderEvent::Placed { id: 1 },
-                        OrderEvent::Placed { id: 2 }
+                        OrderEvent::Open { id: 0 },
+                        OrderEvent::Open { id: 1 },
+                        OrderEvent::Open { id: 2 }
                     ]
                 );
                 assert_eq!(
@@ -994,7 +1002,7 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Placed { id: 0 },
+                        OrderEvent::Open { id: 0 },
                         OrderEvent::Filled {
                             id: 1,
                             filled_qty: 2,
@@ -1007,7 +1015,7 @@ mod test {
                                 total_fill: false,
                             }],
                         },
-                        OrderEvent::Placed { id: 2 }
+                        OrderEvent::Open { id: 2 }
                     ]
                 );
                 assert_eq!(
@@ -1071,9 +1079,9 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Placed { id: 0 },
-                        OrderEvent::Placed { id: 1 },
-                        OrderEvent::Placed { id: 2 }
+                        OrderEvent::Open { id: 0 },
+                        OrderEvent::Open { id: 1 },
+                        OrderEvent::Open { id: 2 }
                     ]
                 );
                 assert_eq!(
@@ -1103,7 +1111,7 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Placed { id: 0 },
+                        OrderEvent::Open { id: 0 },
                         OrderEvent::Filled {
                             id: 1,
                             filled_qty: 2,
@@ -1116,7 +1124,7 @@ mod test {
                                 total_fill: false,
                             }],
                         },
-                        OrderEvent::Placed { id: 2 }
+                        OrderEvent::Open { id: 2 }
                     ]
                 );
                 assert_eq!(
@@ -1180,9 +1188,9 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Placed { id: 0 },
-                        OrderEvent::Placed { id: 1 },
-                        OrderEvent::Placed { id: 2 }
+                        OrderEvent::Open { id: 0 },
+                        OrderEvent::Open { id: 1 },
+                        OrderEvent::Open { id: 2 }
                     ]
                 );
                 assert_eq!(
@@ -1215,7 +1223,7 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Placed { id: 0 },
+                        OrderEvent::Open { id: 0 },
                         OrderEvent::Filled {
                             id: 1,
                             filled_qty: 2,
@@ -1228,7 +1236,7 @@ mod test {
                                 total_fill: false,
                             }],
                         },
-                        OrderEvent::Placed { id: 2 }
+                        OrderEvent::Open { id: 2 }
                     ]
                 );
                 assert_eq!(
@@ -1305,9 +1313,9 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Placed { id: 0 },
-                        OrderEvent::Placed { id: 1 },
-                        OrderEvent::Placed { id: 2 }
+                        OrderEvent::Open { id: 0 },
+                        OrderEvent::Open { id: 1 },
+                        OrderEvent::Open { id: 2 }
                     ]
                 );
                 assert_eq!(
@@ -1344,7 +1352,7 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Placed { id: 0 },
+                        OrderEvent::Open { id: 0 },
                         OrderEvent::Filled {
                             id: 1,
                             filled_qty: 2,
@@ -1357,7 +1365,7 @@ mod test {
                                 total_fill: false,
                             }],
                         },
-                        OrderEvent::Placed { id: 2 }
+                        OrderEvent::Open { id: 2 }
                     ]
                 );
                 assert_eq!(
@@ -1427,9 +1435,9 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Placed { id: 0 },
-                        OrderEvent::Placed { id: 1 },
-                        OrderEvent::Placed { id: 2 }
+                        OrderEvent::Open { id: 0 },
+                        OrderEvent::Open { id: 1 },
+                        OrderEvent::Open { id: 2 }
                     ]
                 );
                 assert_eq!(
@@ -1469,7 +1477,7 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Placed { id: 0 },
+                        OrderEvent::Open { id: 0 },
                         OrderEvent::Filled {
                             id: 1,
                             filled_qty: 2,
@@ -1482,7 +1490,7 @@ mod test {
                                 total_fill: false,
                             }],
                         },
-                        OrderEvent::Placed { id: 2 }
+                        OrderEvent::Open { id: 2 }
                     ]
                 );
                 assert_eq!(
@@ -1534,7 +1542,7 @@ mod test {
                 price: 395,
             }]);
             let result = ob.execute(OrderType::Cancel { id: 0 });
-            assert_eq!(results, vec![OrderEvent::Placed { id: 0 }]);
+            assert_eq!(results, vec![OrderEvent::Open { id: 0 }]);
             assert_eq!(result, OrderEvent::Canceled { id: 0 });
             assert_eq!(ob.min_ask(), None);
             assert_eq!(ob.max_bid(), None);
@@ -1577,9 +1585,9 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Placed { id: 0 },
-                        OrderEvent::Placed { id: 1 },
-                        OrderEvent::Placed { id: 2 }
+                        OrderEvent::Open { id: 0 },
+                        OrderEvent::Open { id: 1 },
+                        OrderEvent::Open { id: 2 }
                     ]
                 );
                 assert_eq!(result, OrderEvent::Canceled { id: 0 });
@@ -1595,7 +1603,7 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Placed { id: 0 },
+                        OrderEvent::Open { id: 0 },
                         OrderEvent::Filled {
                             id: 1,
                             filled_qty: 2,
@@ -1608,7 +1616,7 @@ mod test {
                                 total_fill: false,
                             }],
                         },
-                        OrderEvent::Placed { id: 2 }
+                        OrderEvent::Open { id: 2 }
                     ]
                 );
                 assert_eq!(result, OrderEvent::Canceled { id: 0 });
