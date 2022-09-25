@@ -65,6 +65,17 @@ pub fn place_cancel(id:u64) -> JsValue{
 
 #[wasm_bindgen]
 #[allow(dead_code)]
+pub fn execute_order_text(order:String) -> JsValue {
+    let event = ORDER_BOOK.with(|book| {
+        let mut book_state = book.borrow_mut();
+        let result = book_state.execute(OrderType::from_str(&order).unwrap());
+        return result
+    });
+    serde_wasm_bindgen::to_value(&event).unwrap()
+}
+
+#[wasm_bindgen]
+#[allow(dead_code)]
 pub fn add_random_orders() -> JsValue{
     let orders = vec![
         "1,limit,BID,10,19990",

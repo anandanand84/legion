@@ -1,5 +1,7 @@
+use std::any::Any;
 use std::collections::BTreeMap;
 
+use crate::rejectmessages::LIQUIDITY_NOT_AVAILABLE;
 use crate::arena::OrderArena;
 use crate::models::{
     BookDepth, BookLevel, FillMetadata, OrderEvent, OrderType, Side, Trade, OrderId, Qty, Price,
@@ -13,6 +15,7 @@ const DEFAULT_QUEUE_CAPACITY: usize = 10;
 /// [`execute`]: #method.execute
 #[derive(Debug)]
 pub struct OrderBook {
+    last_processed_order_id: u64,
     last_trade: Option<Trade>,
     traded_volume: Qty,
     min_ask: Option<Price>,
@@ -53,6 +56,7 @@ impl OrderBook {
         track_stats: bool,
     ) -> Self {
         Self {
+            last_processed_order_id: 1000,
             last_trade: None,
             traded_volume: 0,
             min_ask: None,
@@ -215,7 +219,7 @@ impl OrderBook {
             OrderType::Market { id, side, qty } => {
                 let (fills, partial, filled_qty) = self.market(id, side, qty);
                 if fills.is_empty() {
-                    OrderEvent::Rejected { id }
+                    OrderEvent::Rejected { id, message: LIQUIDITY_NOT_AVAILABLE  }
                 } else if partial {
                     OrderEvent::PartiallyFilled {
                         id,
@@ -520,7 +524,7 @@ impl OrderBook {
 mod test {
     use crate::{
         BookDepth, BookLevel, FillMetadata, OrderBook, OrderEvent, OrderType,
-        Side, Trade,
+        Side, Trade, rejectmessages::LIQUIDITY_NOT_AVAILABLE,
     };
     use std::collections::BTreeMap;
 
@@ -1276,7 +1280,7 @@ mod test {
                 qty: 5,
             });
 
-            assert_eq!(result, OrderEvent::Rejected { id: 0 });
+            assert_eq!(result, OrderEvent::Rejected { id: 0, message: LIQUIDITY_NOT_AVAILABLE });
         }
     }
 

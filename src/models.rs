@@ -165,7 +165,9 @@ pub enum OrderEvent {
     /// in response to market orders.
     Rejected {
         /// The ID of the order this event is referring to.
-        id: OrderId
+        id: OrderId,
+        /// Reject message
+        message: &'static str
     },
     /// Indicating that the corresponding order is open on the order book. It
     /// is only send in response to limit orders.

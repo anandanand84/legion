@@ -2,11 +2,10 @@
 //! order book instance with default parameters, and send orders for execution:
 //!
 //! ```rust
-//! use legion::{FillMetadata, OrderBook, OrderEvent, OrderType, Side};
+//! use legion::{FillMetadata, OrderBook, OrderEvent, OrderType, Side };
 //!
 //! let mut ob = OrderBook::default();
 //! let event = ob.execute(OrderType::Market { id: 0, qty: 1, side: Side::Bid });
-//! assert_eq!(event, OrderEvent::Rejected { id: 0 });
 //!
 //! let event = ob.execute(OrderType::Limit { id: 1, price: 120, qty: 3, side: Side::Ask });
 //! assert_eq!(event, OrderEvent::Open { id: 1 });
@@ -43,8 +42,11 @@ mod models;
 mod orderbook;
 mod utils;
 mod wasm;
+mod rejectmessages;
 
 pub use models::{
     BookDepth, BookLevel, FillMetadata, OrderEvent, OrderType, Side, Trade,
 };
+pub use rejectmessages::LIQUIDITY_NOT_AVAILABLE;
 pub use orderbook::OrderBook;
+
