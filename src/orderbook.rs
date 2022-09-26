@@ -331,8 +331,9 @@ impl OrderBook {
                     self.match_with_asks(id, qty, &mut fills, Some(price));
                 if remaining_qty > 0 {
                     partial = true;
-                    self.arena.insert(id, user_id, price, remaining_qty);
                     let queue_capacity = self.default_queue_capacity;
+                    //mutation
+                    self.arena.insert(id, user_id, price, remaining_qty);
                     self.bids
                         .entry(price)
                         .or_insert_with(|| Vec::with_capacity(queue_capacity))
@@ -405,6 +406,7 @@ impl OrderBook {
             if remaining_qty == 0 {
                 break;
             }
+            //mutation
             let filled_qty = Self::process_queue(
                 &mut self.arena,
                 queue,
