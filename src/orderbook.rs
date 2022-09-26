@@ -616,17 +616,17 @@ mod test {
     fn one_resting_order() {
         for (bid_ask, _) in &BID_ASK_COMBINATIONS {
             let (ob, results) = init_ob(vec![OrderType::Limit {
-                id: 0,
+                id: 1,
                 side: *bid_ask,
                 qty: 12,
                 price: 395,
             }]);
-            assert_eq!(results, vec![OrderEvent::Open { id: 0 }]);
+            assert_eq!(results, vec![OrderEvent::Open { id: 1 }]);
             if *bid_ask == Side::Bid {
                 assert_eq!(ob.min_ask(), None);
                 assert_eq!(ob.max_bid(), Some(395));
                 assert_eq!(ob._asks(), Vec::new());
-                assert_eq!(ob._bids(), init_book(vec![(395, 0)]));
+                assert_eq!(ob._bids(), init_book(vec![(395, 1)]));
                 assert_eq!(ob.spread(), None);
                 assert_eq!(ob.traded_volume(), 0);
                 assert_eq!(
@@ -645,7 +645,7 @@ mod test {
             } else {
                 assert_eq!(ob.min_ask(), Some(395));
                 assert_eq!(ob.max_bid(), None);
-                assert_eq!(ob._asks(), init_book(vec![(395, 0)]));
+                assert_eq!(ob._asks(), init_book(vec![(395, 1)]));
                 assert_eq!(ob._bids(), Vec::new());
                 assert_eq!(ob.spread(), None);
                 assert_eq!(ob.traded_volume(), 0);
@@ -671,13 +671,13 @@ mod test {
         for (bid_ask, ask_bid) in &BID_ASK_COMBINATIONS {
             let (ob, results) = init_ob(vec![
                 OrderType::Limit {
-                    id: 0,
+                    id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
-                    id: 1,
+                    id: 2,
                     side: *ask_bid,
                     qty: 2,
                     price: 398,
@@ -687,14 +687,14 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Open { id: 0 },
-                        OrderEvent::Open { id: 1 }
+                        OrderEvent::Open { id: 1 },
+                        OrderEvent::Open { id: 2 }
                     ]
                 );
                 assert_eq!(ob.min_ask(), Some(398));
                 assert_eq!(ob.max_bid(), Some(395));
-                assert_eq!(ob._asks(), init_book(vec![(398, 1)]));
-                assert_eq!(ob._bids(), init_book(vec![(395, 0)]));
+                assert_eq!(ob._asks(), init_book(vec![(398, 2)]));
+                assert_eq!(ob._bids(), init_book(vec![(395, 1)]));
                 assert_eq!(ob.spread(), Some(3));
                 assert_eq!(ob.traded_volume(), 0);
                 assert_eq!(
@@ -714,13 +714,13 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Open { id: 0 },
+                        OrderEvent::Open { id: 1 },
                         OrderEvent::Filled {
-                            id: 1,
+                            id: 2,
                             filled_qty: 2,
                             fills: vec![FillMetadata {
-                                order_1: 1,
-                                order_2: 0,
+                                order_1: 2,
+                                order_2: 1,
                                 qty: 2,
                                 price: 395,
                                 taker_side: *ask_bid,
@@ -731,7 +731,7 @@ mod test {
                 );
                 assert_eq!(ob.min_ask(), Some(395));
                 assert_eq!(ob.max_bid(), None);
-                assert_eq!(ob._asks(), init_book(vec![(395, 0)]));
+                assert_eq!(ob._asks(), init_book(vec![(395, 1)]));
                 assert_eq!(ob._bids(), init_book(vec![]));
                 assert_eq!(ob.spread(), None);
                 assert_eq!(ob.traded_volume(), 2);
@@ -765,13 +765,13 @@ mod test {
         for (bid_ask, _) in &BID_ASK_COMBINATIONS {
             let (ob, results) = init_ob(vec![
                 OrderType::Limit {
-                    id: 0,
+                    id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
-                    id: 1,
+                    id: 2,
                     side: *bid_ask,
                     qty: 2,
                     price: 395,
@@ -780,8 +780,8 @@ mod test {
             assert_eq!(
                 results,
                 vec![
-                    OrderEvent::Open { id: 0 },
-                    OrderEvent::Open { id: 1 }
+                    OrderEvent::Open { id: 1 },
+                    OrderEvent::Open { id: 2 }
                 ]
             );
             if *bid_ask == Side::Bid {
@@ -790,7 +790,7 @@ mod test {
                 assert_eq!(ob._asks(), Vec::new());
                 assert_eq!(
                     ob._bids(),
-                    init_book(vec![(395, 0), (395, 1)])
+                    init_book(vec![(395, 1), (395, 2)])
                 );
                 assert_eq!(ob.spread(), None);
                 assert_eq!(ob.traded_volume(), 0);
@@ -812,7 +812,7 @@ mod test {
                 assert_eq!(ob.max_bid(), None);
                 assert_eq!(
                     ob._asks(),
-                    init_book(vec![(395, 0), (395, 1)])
+                    init_book(vec![(395, 1), (395, 2)])
                 );
                 assert_eq!(ob._bids(), Vec::new());
                 assert_eq!(ob.spread(), None);
@@ -839,13 +839,13 @@ mod test {
         for (bid_ask, _) in &BID_ASK_COMBINATIONS {
             let (ob, results) = init_ob(vec![
                 OrderType::Limit {
-                    id: 0,
+                    id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
-                    id: 1,
+                    id: 2,
                     side: *bid_ask,
                     qty: 2,
                     price: 398,
@@ -854,8 +854,8 @@ mod test {
             assert_eq!(
                 results,
                 vec![
-                    OrderEvent::Open { id: 0 },
-                    OrderEvent::Open { id: 1 }
+                    OrderEvent::Open { id: 1 },
+                    OrderEvent::Open { id: 2 }
                 ]
             );
             if *bid_ask == Side::Bid {
@@ -864,7 +864,7 @@ mod test {
                 assert_eq!(ob._asks(), Vec::new());
                 assert_eq!(
                     ob._bids(),
-                    init_book(vec![(398, 1), (395, 0)])
+                    init_book(vec![(398, 2), (395, 1)])
                 );
                 assert_eq!(ob.spread(), None);
             } else {
@@ -872,7 +872,7 @@ mod test {
                 assert_eq!(ob.max_bid(), None);
                 assert_eq!(
                     ob._asks(),
-                    init_book(vec![(398, 1), (395, 0)])
+                    init_book(vec![(398, 2), (395, 1)])
                 );
                 assert_eq!(ob._bids(), Vec::new());
                 assert_eq!(ob.spread(), None);
@@ -885,19 +885,19 @@ mod test {
         for (bid_ask, ask_bid) in &BID_ASK_COMBINATIONS {
             let (ob, results) = init_ob(vec![
                 OrderType::Limit {
-                    id: 0,
+                    id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
-                    id: 1,
+                    id: 2,
                     side: *ask_bid,
                     qty: 2,
                     price: 399,
                 },
                 OrderType::Limit {
-                    id: 2,
+                    id: 3,
                     side: *bid_ask,
                     qty: 2,
                     price: 398,
@@ -907,44 +907,44 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Open { id: 0 },
                         OrderEvent::Open { id: 1 },
-                        OrderEvent::Open { id: 2 }
+                        OrderEvent::Open { id: 2 },
+                        OrderEvent::Open { id: 3 }
                     ]
                 );
                 assert_eq!(ob.min_ask(), Some(399));
                 assert_eq!(ob.max_bid(), Some(398));
-                assert_eq!(ob._asks(), init_book(vec![(399, 1)]));
+                assert_eq!(ob._asks(), init_book(vec![(399, 2)]));
                 assert_eq!(
                     ob._bids(),
-                    init_book(vec![(398, 2), (395, 0)])
+                    init_book(vec![(398, 3), (395, 1)])
                 );
                 assert_eq!(ob.spread(), Some(1));
             } else {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Open { id: 0 },
+                        OrderEvent::Open { id: 1 },
                         OrderEvent::Filled {
-                            id: 1,
+                            id: 2,
                             filled_qty: 2,
                             fills: vec![FillMetadata {
-                                order_1: 1,
-                                order_2: 0,
+                                order_1: 2,
+                                order_2: 1,
                                 qty: 2,
                                 price: 395,
                                 taker_side: *ask_bid,
                                 total_fill: false,
                             }],
                         },
-                        OrderEvent::Open { id: 2 }
+                        OrderEvent::Open { id: 3 }
                     ]
                 );
                 assert_eq!(ob.min_ask(), Some(395));
                 assert_eq!(ob.max_bid(), None);
                 assert_eq!(
                     ob._asks(),
-                    init_book(vec![(398, 2), (395, 0)])
+                    init_book(vec![(398, 3), (395, 1)])
                 );
                 assert_eq!(ob._bids(), init_book(vec![]));
                 assert_eq!(ob.spread(), None);
@@ -957,26 +957,26 @@ mod test {
         for (bid_ask, ask_bid) in &BID_ASK_COMBINATIONS {
             let (mut ob, results) = init_ob(vec![
                 OrderType::Limit {
-                    id: 0,
+                    id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
-                    id: 1,
+                    id: 2,
                     side: *ask_bid,
                     qty: 2,
                     price: 399,
                 },
                 OrderType::Limit {
-                    id: 2,
+                    id: 3,
                     side: *bid_ask,
                     qty: 2,
                     price: 398,
                 },
             ]);
             let result = ob.execute(OrderType::Limit {
-                id: 3,
+                id: 4,
                 side: *ask_bid,
                 qty: 1,
                 price: 397,
@@ -986,19 +986,19 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Open { id: 0 },
                         OrderEvent::Open { id: 1 },
-                        OrderEvent::Open { id: 2 }
+                        OrderEvent::Open { id: 2 },
+                        OrderEvent::Open { id: 3 }
                     ]
                 );
                 assert_eq!(
                     result,
                     OrderEvent::Filled {
-                        id: 3,
+                        id: 4,
                         filled_qty: 1,
                         fills: vec![FillMetadata {
-                            order_1: 3,
-                            order_2: 2,
+                            order_1: 4,
+                            order_2: 3,
                             qty: 1,
                             price: 398,
                             taker_side: *ask_bid,
@@ -1008,40 +1008,40 @@ mod test {
                 );
                 assert_eq!(ob.min_ask(), Some(399));
                 assert_eq!(ob.max_bid(), Some(398));
-                assert_eq!(ob._asks(), init_book(vec![(399, 1)]));
+                assert_eq!(ob._asks(), init_book(vec![(399, 2)]));
                 assert_eq!(
                     ob._bids(),
-                    init_book(vec![(398, 2), (395, 0)])
+                    init_book(vec![(398, 3), (395, 1)])
                 );
                 assert_eq!(ob.spread(), Some(1));
             } else {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Open { id: 0 },
+                        OrderEvent::Open { id: 1 },
                         OrderEvent::Filled {
-                            id: 1,
+                            id: 2,
                             filled_qty: 2,
                             fills: vec![FillMetadata {
-                                order_1: 1,
-                                order_2: 0,
+                                order_1: 2,
+                                order_2: 1,
                                 qty: 2,
                                 price: 395,
                                 taker_side: *ask_bid,
                                 total_fill: false,
                             }],
                         },
-                        OrderEvent::Open { id: 2 }
+                        OrderEvent::Open { id: 3 }
                     ]
                 );
                 assert_eq!(
                     result,
                     OrderEvent::Filled {
-                        id: 3,
+                        id: 4,
                         filled_qty: 1,
                         fills: vec![FillMetadata {
-                            order_1: 3,
-                            order_2: 0,
+                            order_1: 4,
+                            order_2: 1,
                             qty: 1,
                             price: 395,
                             taker_side: *ask_bid,
@@ -1053,7 +1053,7 @@ mod test {
                 assert_eq!(ob.max_bid(), None);
                 assert_eq!(
                     ob._asks(),
-                    init_book(vec![(398, 2), (395, 0)])
+                    init_book(vec![(398, 3), (395, 1)])
                 );
                 assert_eq!(ob._bids(), init_book(vec![]));
                 assert_eq!(ob.spread(), None);
@@ -1066,26 +1066,26 @@ mod test {
         for (bid_ask, ask_bid) in &BID_ASK_COMBINATIONS {
             let (mut ob, results) = init_ob(vec![
                 OrderType::Limit {
-                    id: 0,
+                    id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
-                    id: 1,
+                    id: 2,
                     side: *ask_bid,
                     qty: 2,
                     price: 399,
                 },
                 OrderType::Limit {
-                    id: 2,
+                    id: 3,
                     side: *bid_ask,
                     qty: 2,
                     price: 398,
                 },
             ]);
             let result = ob.execute(OrderType::Limit {
-                id: 3,
+                id: 4,
                 side: *ask_bid,
                 qty: 2,
                 price: 397,
@@ -1095,19 +1095,19 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Open { id: 0 },
                         OrderEvent::Open { id: 1 },
-                        OrderEvent::Open { id: 2 }
+                        OrderEvent::Open { id: 2 },
+                        OrderEvent::Open { id: 3 }
                     ]
                 );
                 assert_eq!(
                     result,
                     OrderEvent::Filled {
-                        id: 3,
+                        id: 4,
                         filled_qty: 2,
                         fills: vec![FillMetadata {
-                            order_1: 3,
-                            order_2: 2,
+                            order_1: 4,
+                            order_2: 3,
                             qty: 2,
                             price: 398,
                             taker_side: *ask_bid,
@@ -1117,40 +1117,40 @@ mod test {
                 );
                 assert_eq!(ob.min_ask(), Some(399));
                 assert_eq!(ob.max_bid(), Some(395));
-                assert_eq!(ob._asks(), init_book(vec![(399, 1)]));
+                assert_eq!(ob._asks(), init_book(vec![(399, 2)]));
                 assert_eq!(
                     ob._bids(),
-                    init_book_holes(vec![(395, 0)], vec![398])
+                    init_book_holes(vec![(395, 1)], vec![398])
                 );
                 assert_eq!(ob.spread(), Some(4));
             } else {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Open { id: 0 },
+                        OrderEvent::Open { id: 1 },
                         OrderEvent::Filled {
-                            id: 1,
+                            id: 2,
                             filled_qty: 2,
                             fills: vec![FillMetadata {
-                                order_1: 1,
-                                order_2: 0,
+                                order_1: 2,
+                                order_2: 1,
                                 qty: 2,
                                 price: 395,
                                 taker_side: *ask_bid,
                                 total_fill: false,
                             }],
                         },
-                        OrderEvent::Open { id: 2 }
+                        OrderEvent::Open { id: 3 }
                     ]
                 );
                 assert_eq!(
                     result,
                     OrderEvent::Filled {
-                        id: 3,
+                        id: 4,
                         filled_qty: 2,
                         fills: vec![FillMetadata {
-                            order_1: 3,
-                            order_2: 0,
+                            order_1: 4,
+                            order_2: 1,
                             qty: 2,
                             price: 395,
                             taker_side: *ask_bid,
@@ -1162,7 +1162,7 @@ mod test {
                 assert_eq!(ob.max_bid(), None);
                 assert_eq!(
                     ob._asks(),
-                    init_book(vec![(395, 0), (398, 2)])
+                    init_book(vec![(395, 1), (398, 3)])
                 );
                 assert_eq!(ob._bids(), init_book(vec![]));
                 assert_eq!(ob.spread(), None);
@@ -1175,26 +1175,26 @@ mod test {
         for (bid_ask, ask_bid) in &BID_ASK_COMBINATIONS {
             let (mut ob, results) = init_ob(vec![
                 OrderType::Limit {
-                    id: 0,
+                    id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
-                    id: 1,
+                    id: 2,
                     side: *ask_bid,
                     qty: 2,
                     price: 399,
                 },
                 OrderType::Limit {
-                    id: 2,
+                    id: 3,
                     side: *bid_ask,
                     qty: 2,
                     price: 398,
                 },
             ]);
             let result = ob.execute(OrderType::Limit {
-                id: 3,
+                id: 4,
                 side: *ask_bid,
                 qty: 5,
                 price: 397,
@@ -1204,19 +1204,19 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Open { id: 0 },
                         OrderEvent::Open { id: 1 },
-                        OrderEvent::Open { id: 2 }
+                        OrderEvent::Open { id: 2 },
+                        OrderEvent::Open { id: 3 }
                     ]
                 );
                 assert_eq!(
                     result,
                     OrderEvent::PartiallyFilled {
-                        id: 3,
+                        id: 4,
                         filled_qty: 2,
                         fills: vec![FillMetadata {
-                            order_1: 3,
-                            order_2: 2,
+                            order_1: 4,
+                            order_2: 3,
                             qty: 2,
                             price: 398,
                             taker_side: *ask_bid,
@@ -1228,41 +1228,41 @@ mod test {
                 assert_eq!(ob.max_bid(), Some(395));
                 assert_eq!(
                     ob._asks(),
-                    init_book(vec![(399, 1), (397, 3)])
+                    init_book(vec![(399, 2), (397, 4)])
                 );
                 assert_eq!(
                     ob._bids(),
-                    init_book_holes(vec![(395, 0)], vec![398])
+                    init_book_holes(vec![(395, 1)], vec![398])
                 );
                 assert_eq!(ob.spread(), Some(2));
             } else {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Open { id: 0 },
+                        OrderEvent::Open { id: 1 },
                         OrderEvent::Filled {
-                            id: 1,
+                            id: 2,
                             filled_qty: 2,
                             fills: vec![FillMetadata {
-                                order_1: 1,
-                                order_2: 0,
+                                order_1: 2,
+                                order_2: 1,
                                 qty: 2,
                                 price: 395,
                                 taker_side: *ask_bid,
                                 total_fill: false,
                             }],
                         },
-                        OrderEvent::Open { id: 2 }
+                        OrderEvent::Open { id: 3 }
                     ]
                 );
                 assert_eq!(
                     result,
                     OrderEvent::Filled {
-                        id: 3,
+                        id: 4,
                         filled_qty: 5,
                         fills: vec![FillMetadata {
-                            order_1: 3,
-                            order_2: 0,
+                            order_1: 4,
+                            order_2: 1,
                             qty: 5,
                             price: 395,
                             taker_side: *ask_bid,
@@ -1274,7 +1274,7 @@ mod test {
                 assert_eq!(ob.max_bid(), None);
                 assert_eq!(
                     ob._asks(),
-                    init_book(vec![(395, 0), (398, 2)])
+                    init_book(vec![(395, 1), (398, 3)])
                 );
                 assert_eq!(ob._bids(), init_book(vec![]));
                 assert_eq!(ob.spread(), None);
@@ -1287,12 +1287,12 @@ mod test {
         for (_, ask_bid) in &BID_ASK_COMBINATIONS {
             let (mut ob, _) = init_ob(vec![]);
             let result = ob.execute(OrderType::Market {
-                id: 0,
+                id: 1,
                 side: *ask_bid,
                 qty: 5,
             });
 
-            assert_eq!(result, OrderEvent::Rejected { id: 0, message: LIQUIDITY_NOT_AVAILABLE });
+            assert_eq!(result, OrderEvent::Rejected { id: 1, message: LIQUIDITY_NOT_AVAILABLE });
         }
     }
 
@@ -1301,26 +1301,26 @@ mod test {
         for (bid_ask, ask_bid) in &BID_ASK_COMBINATIONS {
             let (mut ob, results) = init_ob(vec![
                 OrderType::Limit {
-                    id: 0,
+                    id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
-                    id: 1,
+                    id: 2,
                     side: *ask_bid,
                     qty: 2,
                     price: 399,
                 },
                 OrderType::Limit {
-                    id: 2,
+                    id: 3,
                     side: *bid_ask,
                     qty: 2,
                     price: 398,
                 },
             ]);
             let result = ob.execute(OrderType::Market {
-                id: 3,
+                id: 4,
                 side: *ask_bid,
                 qty: 15,
             });
@@ -1329,28 +1329,28 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Open { id: 0 },
                         OrderEvent::Open { id: 1 },
-                        OrderEvent::Open { id: 2 }
+                        OrderEvent::Open { id: 2 },
+                        OrderEvent::Open { id: 3 }
                     ]
                 );
                 assert_eq!(
                     result,
                     OrderEvent::PartiallyFilled {
-                        id: 3,
+                        id: 4,
                         filled_qty: 14,
                         fills: vec![
                             FillMetadata {
-                                order_1: 3,
-                                order_2: 2,
+                                order_1: 4,
+                                order_2: 3,
                                 qty: 2,
                                 price: 398,
                                 taker_side: *ask_bid,
                                 total_fill: true,
                             },
                             FillMetadata {
-                                order_1: 3,
-                                order_2: 0,
+                                order_1: 4,
+                                order_2: 1,
                                 qty: 12,
                                 price: 395,
                                 taker_side: *ask_bid,
@@ -1361,46 +1361,46 @@ mod test {
                 );
                 assert_eq!(ob.min_ask(), Some(399));
                 assert_eq!(ob.max_bid(), None);
-                assert_eq!(ob._asks(), init_book(vec![(399, 1)]));
+                assert_eq!(ob._asks(), init_book(vec![(399, 2)]));
                 assert_eq!(ob._bids(), init_book_holes(vec![], vec![395, 398]));
                 assert_eq!(ob.spread(), None);
             } else {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Open { id: 0 },
+                        OrderEvent::Open { id: 1 },
                         OrderEvent::Filled {
-                            id: 1,
+                            id: 2,
                             filled_qty: 2,
                             fills: vec![FillMetadata {
-                                order_1: 1,
-                                order_2: 0,
+                                order_1: 2,
+                                order_2: 1,
                                 qty: 2,
                                 price: 395,
                                 taker_side: *ask_bid,
                                 total_fill: false,
                             }],
                         },
-                        OrderEvent::Open { id: 2 }
+                        OrderEvent::Open { id: 3 }
                     ]
                 );
                 assert_eq!(
                     result,
                     OrderEvent::PartiallyFilled {
-                        id: 3,
+                        id: 4,
                         filled_qty: 12,
                         fills: vec![
                             FillMetadata {
-                                order_1: 3,
-                                order_2: 0,
+                                order_1: 4,
+                                order_2: 1,
                                 qty: 10,
                                 price: 395,
                                 taker_side: *ask_bid,
                                 total_fill: true,
                             },
                             FillMetadata {
-                                order_1: 3,
-                                order_2: 2,
+                                order_1: 4,
+                                order_2: 3,
                                 qty: 2,
                                 price: 398,
                                 taker_side: *ask_bid,
@@ -1423,26 +1423,26 @@ mod test {
         for (bid_ask, ask_bid) in &BID_ASK_COMBINATIONS {
             let (mut ob, results) = init_ob(vec![
                 OrderType::Limit {
-                    id: 0,
+                    id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
-                    id: 1,
+                    id: 2,
                     side: *ask_bid,
                     qty: 2,
                     price: 399,
                 },
                 OrderType::Limit {
-                    id: 2,
+                    id: 3,
                     side: *bid_ask,
                     qty: 2,
                     price: 398,
                 },
             ]);
             let result = ob.execute(OrderType::Market {
-                id: 3,
+                id: 4,
                 side: *ask_bid,
                 qty: 7,
             });
@@ -1451,28 +1451,28 @@ mod test {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Open { id: 0 },
                         OrderEvent::Open { id: 1 },
-                        OrderEvent::Open { id: 2 }
+                        OrderEvent::Open { id: 2 },
+                        OrderEvent::Open { id: 3 }
                     ]
                 );
                 assert_eq!(
                     result,
                     OrderEvent::Filled {
-                        id: 3,
+                        id: 4,
                         filled_qty: 7,
                         fills: vec![
                             FillMetadata {
-                                order_1: 3,
-                                order_2: 2,
+                                order_1: 4,
+                                order_2: 3,
                                 qty: 2,
                                 price: 398,
                                 taker_side: *ask_bid,
                                 total_fill: true,
                             },
                             FillMetadata {
-                                order_1: 3,
-                                order_2: 0,
+                                order_1: 4,
+                                order_2: 1,
                                 qty: 5,
                                 price: 395,
                                 taker_side: *ask_bid,
@@ -1483,40 +1483,40 @@ mod test {
                 );
                 assert_eq!(ob.min_ask(), Some(399));
                 assert_eq!(ob.max_bid(), Some(395));
-                assert_eq!(ob._asks(), init_book(vec![(399, 1)]));
+                assert_eq!(ob._asks(), init_book(vec![(399, 2)]));
                 assert_eq!(
                     ob._bids(),
-                    init_book_holes(vec![(395, 0)], vec![398])
+                    init_book_holes(vec![(395, 1)], vec![398])
                 );
                 assert_eq!(ob.spread(), Some(4));
             } else {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Open { id: 0 },
+                        OrderEvent::Open { id: 1 },
                         OrderEvent::Filled {
-                            id: 1,
+                            id: 2,
                             filled_qty: 2,
                             fills: vec![FillMetadata {
-                                order_1: 1,
-                                order_2: 0,
+                                order_1: 2,
+                                order_2: 1,
                                 qty: 2,
                                 price: 395,
                                 taker_side: *ask_bid,
                                 total_fill: false,
                             }],
                         },
-                        OrderEvent::Open { id: 2 }
+                        OrderEvent::Open { id: 3 }
                     ]
                 );
                 assert_eq!(
                     result,
                     OrderEvent::Filled {
-                        id: 3,
+                        id: 4,
                         filled_qty: 7,
                         fills: vec![FillMetadata {
-                            order_1: 3,
-                            order_2: 0,
+                            order_1: 4,
+                            order_2: 1,
                             qty: 7,
                             price: 395,
                             taker_side: *ask_bid,
@@ -1528,7 +1528,7 @@ mod test {
                 assert_eq!(ob.max_bid(), None);
                 assert_eq!(
                     ob._asks(),
-                    init_book(vec![(395, 0), (398, 2)])
+                    init_book(vec![(395, 1), (398, 3)])
                 );
                 assert_eq!(ob._bids(), init_book(vec![]));
                 assert_eq!(ob.spread(), None);
@@ -1552,14 +1552,14 @@ mod test {
     fn cancel_resting_order() {
         for (bid_ask, _) in &BID_ASK_COMBINATIONS {
             let (mut ob, results) = init_ob(vec![OrderType::Limit {
-                id: 0,
+                id: 1,
                 side: *bid_ask,
                 qty: 12,
                 price: 395,
             }]);
-            let result = ob.execute(OrderType::Cancel { id: 0 });
-            assert_eq!(results, vec![OrderEvent::Open { id: 0 }]);
-            assert_eq!(result, OrderEvent::Canceled { id: 0 });
+            let result = ob.execute(OrderType::Cancel { id: 1 });
+            assert_eq!(results, vec![OrderEvent::Open { id: 1 }]);
+            assert_eq!(result, OrderEvent::Canceled { id: 1 });
             assert_eq!(ob.min_ask(), None);
             assert_eq!(ob.max_bid(), None);
             if *bid_ask == Side::Bid {
@@ -1578,69 +1578,69 @@ mod test {
         for (bid_ask, ask_bid) in &BID_ASK_COMBINATIONS {
             let (mut ob, results) = init_ob(vec![
                 OrderType::Limit {
-                    id: 0,
+                    id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
-                    id: 1,
+                    id: 2,
                     side: *ask_bid,
                     qty: 2,
                     price: 399,
                 },
                 OrderType::Limit {
-                    id: 2,
+                    id: 3,
                     side: *bid_ask,
                     qty: 2,
                     price: 398,
                 },
             ]);
-            let result = ob.execute(OrderType::Cancel { id: 0 });
+            let result = ob.execute(OrderType::Cancel { id: 1 });
             if *bid_ask == Side::Bid {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Open { id: 0 },
                         OrderEvent::Open { id: 1 },
-                        OrderEvent::Open { id: 2 }
+                        OrderEvent::Open { id: 2 },
+                        OrderEvent::Open { id: 3 }
                     ]
                 );
-                assert_eq!(result, OrderEvent::Canceled { id: 0 });
+                assert_eq!(result, OrderEvent::Canceled { id: 1 });
                 assert_eq!(ob.min_ask(), Some(399));
                 assert_eq!(ob.max_bid(), Some(398));
-                assert_eq!(ob._asks(), init_book(vec![(399, 1)]));
+                assert_eq!(ob._asks(), init_book(vec![(399, 2)]));
                 assert_eq!(
                     ob._bids(),
-                    init_book_holes(vec![(398, 2)], vec![395])
+                    init_book_holes(vec![(398, 3)], vec![395])
                 );
                 assert_eq!(ob.spread(), Some(1));
             } else {
                 assert_eq!(
                     results,
                     vec![
-                        OrderEvent::Open { id: 0 },
+                        OrderEvent::Open { id: 1 },
                         OrderEvent::Filled {
-                            id: 1,
+                            id: 2,
                             filled_qty: 2,
                             fills: vec![FillMetadata {
-                                order_1: 1,
-                                order_2: 0,
+                                order_1: 2,
+                                order_2: 1,
                                 qty: 2,
                                 price: 395,
                                 taker_side: *ask_bid,
                                 total_fill: false,
                             }],
                         },
-                        OrderEvent::Open { id: 2 }
+                        OrderEvent::Open { id: 3 }
                     ]
                 );
-                assert_eq!(result, OrderEvent::Canceled { id: 0 });
+                assert_eq!(result, OrderEvent::Canceled { id: 1 });
                 assert_eq!(ob.min_ask(), Some(398));
                 assert_eq!(ob.max_bid(), None);
                 assert_eq!(
                     ob._asks(),
-                    init_book_holes(vec![(398, 2)], vec![395])
+                    init_book_holes(vec![(398, 3)], vec![395])
                 );
                 assert_eq!(ob._bids(), init_book(vec![]));
                 assert_eq!(ob.spread(), None);
