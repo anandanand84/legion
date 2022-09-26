@@ -15,13 +15,15 @@
     let neworders = "";
 
     function processOrders() {
-        if (neworders.length != 0) {
-            console.log(neworders);
-            let event = legion.execute_order_text(neworders);
-            console.log(event);
-            events = [...events, event]
-            book = legion.get_book_state();
-        }
+        let orders = neworders.split('\n');
+        orders.forEach((order)=> {
+            if (order.length != 0) {
+                let last_processed = legion.get_last_sequence();
+                let event = legion.execute_order_text(`${last_processed + 1n},${order}`);
+                events = [...events.reverse(), event]
+                book = legion.get_book_state();
+            }
+        })
     }
 </script>
 
@@ -55,6 +57,11 @@
         {/each}
     </div>
     <div class="flex flex-col justify-between">
+        <span>order types: limit,market,ioc,fok</span>
+        <span>ordertype,side,quantity,price</span>
+        <span>ex: </span>
+        <span>limit,bid,10,20000</span>
+        <span>limit,ask,10,20001</span>
         <textarea style="border:1px solid grey;" bind:value="{neworders}" />
         <button on:click={processOrders}>Submit</button>
     </div>

@@ -76,6 +76,14 @@ pub fn execute_order_text(order:String) -> JsValue {
 
 #[wasm_bindgen]
 #[allow(dead_code)]
+pub fn get_last_sequence() -> u64 {
+    return ORDER_BOOK.with(|book| {
+        book.borrow().last_sequence()
+    })
+}
+
+#[wasm_bindgen]
+#[allow(dead_code)]
 pub fn add_random_orders() -> JsValue{
     let orders = vec![
         "1,limit,BID,10,19990",

@@ -1,7 +1,6 @@
-use std::any::Any;
 use std::collections::BTreeMap;
 
-use crate::rejectmessages::LIQUIDITY_NOT_AVAILABLE;
+use crate::rejectmessages::{LIQUIDITY_NOT_AVAILABLE, self};
 use crate::arena::OrderArena;
 use crate::models::{
     BookDepth, BookLevel, FillMetadata, OrderEvent, OrderType, Side, Trade, OrderId, Qty, Price,
@@ -56,7 +55,7 @@ impl OrderBook {
         track_stats: bool,
     ) -> Self {
         Self {
-            last_processed_order_id: 1000,
+            last_processed_order_id: 0,
             last_trade: None,
             traded_volume: 0,
             min_ask: None,
@@ -99,6 +98,12 @@ impl OrderBook {
             (Some(b), Some(a)) => Some(a - b),
             _ => None,
         }
+    }
+
+    /// Return the last sequence processed
+    #[inline(always)]
+    pub fn last_sequence(&self) -> u64 {
+        self.last_processed_order_id
     }
 
     /// Return the last trade recorded while stats tracking was active as a
@@ -165,6 +170,18 @@ impl OrderBook {
 
     /// Execute an order, returning immediately an event indicating the result.
     pub fn execute(&mut self, event: OrderType) -> OrderEvent {
+        let order_id = event.get_id();
+        let order_type = event.get_type();
+        
+        // Having order id sequence to only increase is very important which helps in optimizing the order search during cancel.
+        // and helps reconstructing the btreemaps orders from the hashmap 
+        if order_type != "cancel" {
+            if self.last_processed_order_id >=  order_id {
+                return OrderEvent::Rejected { id: order_id, message: rejectmessages::INVALID_ORDER_NUMBER }
+            }
+            self.last_processed_order_id = order_id;
+        }
+
         let event = self._execute(event);
         if !self.track_stats {
             return event;
@@ -234,12 +251,7 @@ impl OrderBook {
                     }
                 }
             }
-            OrderType::Limit {
-                id,
-                side,
-                qty,
-                price,
-            } => {
+            OrderType::Limit { id, side, qty, price,} => {
                 let (fills, partial, filled_qty) =
                     self.limit(id, side, qty, price);
                 if fills.is_empty() {

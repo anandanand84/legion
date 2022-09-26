@@ -95,6 +95,26 @@ pub enum OrderType {
     },
 }
 
+impl OrderType {
+    /// ignore
+    pub fn get_id(&self) -> u64 {
+        match self {
+            OrderType::Market { id, side:_, qty:_ } => *id,
+            OrderType::Limit { id, side:_, qty:_, price:_ } => *id,
+            OrderType::Cancel { id } => *id,
+        }
+    }
+
+    /// ignore
+    pub fn get_type(&self) -> &str {
+        match self {
+            OrderType::Market { id:_, side:_, qty:_ } => "market",
+            OrderType::Limit { id:_, side:_, qty:_, price:_ } => "limit",
+            OrderType::Cancel { id:_ } => "cancel",
+        }
+    }
+}
+
 use thiserror::Error;
 
 
@@ -121,7 +141,7 @@ impl FromStr for OrderType {
         let ordertype = fields[1];
         match ordertype {
             "market" => {
-                if total_fields != 4 {
+                if total_fields < 4 {
                     return Err(OrderParseError::InvalidFieldSize)
                 }
                 Ok(OrderType::Market { 
@@ -131,7 +151,7 @@ impl FromStr for OrderType {
                 })
             },
             "limit" => {
-                if total_fields != 5 {
+                if total_fields < 5 {
                     return Err(OrderParseError::InvalidFieldSize)
                 }
                 Ok(OrderType::Limit { 
@@ -142,7 +162,7 @@ impl FromStr for OrderType {
                 })
             },
             "cancel" => {
-                if total_fields != 2 {
+                if total_fields < 2 {
                     return Err(OrderParseError::InvalidFieldSize)
                 }
                 Ok(OrderType::Cancel { 
