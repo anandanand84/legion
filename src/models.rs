@@ -31,6 +31,7 @@ impl std::ops::Not for Side {
 pub type Price = u64;
 pub type Qty = u64;
 pub type OrderId = u64;
+pub type UserId = u64;
 
 /// An order to be executed by the order book.
 #[derive(Debug, Copy, Clone)]
@@ -40,6 +41,8 @@ pub enum OrderType {
     Market {
         /// The unique ID of this order.
         id: OrderId,
+        /// User id for this order
+        user_id: UserId,
         /// The order side. It will be matched against the resting orders on the
         /// other side of the order book.
         side: Side,
@@ -51,6 +54,8 @@ pub enum OrderType {
     Limit {
         /// The unique ID of this order.
         id: OrderId,
+        /// User id for this order
+        user_id: UserId,
         /// The order side. It will be matched against the resting orders on the
         /// other side of the order book.
         side: Side,
@@ -99,8 +104,8 @@ impl OrderType {
     /// ignore
     pub fn get_id(&self) -> u64 {
         match self {
-            OrderType::Market { id, side:_, qty:_ } => *id,
-            OrderType::Limit { id, side:_, qty:_, price:_ } => *id,
+            OrderType::Market { id, user_id: _, side:_, qty:_ } => *id,
+            OrderType::Limit { id,user_id:_, side:_, qty:_, price:_ } => *id,
             OrderType::Cancel { id } => *id,
         }
     }
@@ -108,8 +113,8 @@ impl OrderType {
     /// ignore
     pub fn get_type(&self) -> &str {
         match self {
-            OrderType::Market { id:_, side:_, qty:_ } => "market",
-            OrderType::Limit { id:_, side:_, qty:_, price:_ } => "limit",
+            OrderType::Market { id:_,user_id:_,  side:_, qty:_ } => "market",
+            OrderType::Limit { id:_,user_id:_,  side:_, qty:_, price:_ } => "limit",
             OrderType::Cancel { id:_ } => "cancel",
         }
     }
@@ -138,27 +143,29 @@ impl FromStr for OrderType {
         if  total_fields < 2 {
             return Err(OrderParseError::InvalidFieldSize)
         }
-        let ordertype = fields[1];
+        let ordertype = fields[2];
         match ordertype {
             "market" => {
-                if total_fields < 4 {
+                if total_fields < 5 {
                     return Err(OrderParseError::InvalidFieldSize)
                 }
                 Ok(OrderType::Market { 
                     id: fields[0].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
-                    side: Side::from_str(fields[2]).map_err(|_| OrderParseError::InvalidSide)?, 
-                    qty: fields[3].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)? , 
+                    user_id: fields[1].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
+                    side: Side::from_str(fields[3]).map_err(|_| OrderParseError::InvalidSide)?, 
+                    qty: fields[4].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)? , 
                 })
             },
             "limit" => {
-                if total_fields < 5 {
+                if total_fields < 6 {
                     return Err(OrderParseError::InvalidFieldSize)
                 }
                 Ok(OrderType::Limit { 
                     id: fields[0].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
-                    side: Side::from_str(fields[2]).map_err(|_| OrderParseError::InvalidSide)?, 
-                    qty: fields[3].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
-                    price: fields[4].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?, 
+                    user_id: fields[1].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
+                    side: Side::from_str(fields[3]).map_err(|_| OrderParseError::InvalidSide)?, 
+                    qty: fields[4].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
+                    price: fields[5].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?, 
                 })
             },
             "cancel" => {
@@ -285,6 +292,7 @@ pub struct Trade {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct LimitOrder {
+    pub user_id: UserId,
     pub id: OrderId,
     pub qty: Qty,
     pub price: Price,

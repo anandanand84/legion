@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use crate::rejectmessages::{LIQUIDITY_NOT_AVAILABLE, self};
 use crate::arena::OrderArena;
 use crate::models::{
-    BookDepth, BookLevel, FillMetadata, OrderEvent, OrderType, Side, Trade, OrderId, Qty, Price,
+    BookDepth, BookLevel, FillMetadata, OrderEvent, OrderType, Side, Trade, OrderId, Qty, Price, UserId,
 };
 
 const DEFAULT_ARENA_CAPACITY: usize = 10_000;
@@ -233,7 +233,7 @@ impl OrderBook {
 
     fn _execute(&mut self, event: OrderType) -> OrderEvent {
         match event {
-            OrderType::Market { id, side, qty } => {
+            OrderType::Market { id, user_id:_, side, qty } => {
                 let (fills, partial, filled_qty) = self.market(id, side, qty);
                 if fills.is_empty() {
                     OrderEvent::Rejected { id, message: LIQUIDITY_NOT_AVAILABLE  }
@@ -251,9 +251,9 @@ impl OrderBook {
                     }
                 }
             }
-            OrderType::Limit { id, side, qty, price,} => {
+            OrderType::Limit { id, user_id, side, qty, price,} => {
                 let (fills, partial, filled_qty) =
-                    self.limit(id, side, qty, price);
+                    self.limit(id, user_id, side, qty, price);
                 if fills.is_empty() {
                     OrderEvent::Open { id }
                 } else if partial {
@@ -316,6 +316,7 @@ impl OrderBook {
     fn limit(
         &mut self,
         id: OrderId,
+        user_id: UserId,
         side: Side,
         qty: u64,
         price: u64,
@@ -330,7 +331,7 @@ impl OrderBook {
                     self.match_with_asks(id, qty, &mut fills, Some(price));
                 if remaining_qty > 0 {
                     partial = true;
-                    self.arena.insert(id, price, remaining_qty);
+                    self.arena.insert(id, user_id, price, remaining_qty);
                     let queue_capacity = self.default_queue_capacity;
                     self.bids
                         .entry(price)
@@ -352,7 +353,7 @@ impl OrderBook {
                     self.match_with_bids(id, qty, &mut fills, Some(price));
                 if remaining_qty > 0 {
                     partial = true;
-                    self.arena.insert(id, price, remaining_qty);
+                    self.arena.insert(id, user_id, price, remaining_qty);
                     if let Some(a) = self.min_ask {
                         if price < a {
                             self.min_ask = Some(price);
@@ -617,6 +618,7 @@ mod test {
         for (bid_ask, _) in &BID_ASK_COMBINATIONS {
             let (ob, results) = init_ob(vec![OrderType::Limit {
                 id: 1,
+                user_id: 1,
                 side: *bid_ask,
                 qty: 12,
                 price: 395,
@@ -671,12 +673,14 @@ mod test {
         for (bid_ask, ask_bid) in &BID_ASK_COMBINATIONS {
             let (ob, results) = init_ob(vec![
                 OrderType::Limit {
+                    user_id: 1,
                     id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
+                    user_id: 1,
                     id: 2,
                     side: *ask_bid,
                     qty: 2,
@@ -765,12 +769,14 @@ mod test {
         for (bid_ask, _) in &BID_ASK_COMBINATIONS {
             let (ob, results) = init_ob(vec![
                 OrderType::Limit {
+                    user_id: 1,
                     id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
+                    user_id: 1,
                     id: 2,
                     side: *bid_ask,
                     qty: 2,
@@ -839,12 +845,14 @@ mod test {
         for (bid_ask, _) in &BID_ASK_COMBINATIONS {
             let (ob, results) = init_ob(vec![
                 OrderType::Limit {
+                    user_id: 1,
                     id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
+                    user_id: 1,
                     id: 2,
                     side: *bid_ask,
                     qty: 2,
@@ -885,18 +893,21 @@ mod test {
         for (bid_ask, ask_bid) in &BID_ASK_COMBINATIONS {
             let (ob, results) = init_ob(vec![
                 OrderType::Limit {
+                    user_id: 1,
                     id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
+                    user_id: 1,
                     id: 2,
                     side: *ask_bid,
                     qty: 2,
                     price: 399,
                 },
                 OrderType::Limit {
+                    user_id: 1,
                     id: 3,
                     side: *bid_ask,
                     qty: 2,
@@ -957,18 +968,21 @@ mod test {
         for (bid_ask, ask_bid) in &BID_ASK_COMBINATIONS {
             let (mut ob, results) = init_ob(vec![
                 OrderType::Limit {
+                    user_id: 1,
                     id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
+                    user_id: 1,
                     id: 2,
                     side: *ask_bid,
                     qty: 2,
                     price: 399,
                 },
                 OrderType::Limit {
+                    user_id: 1,
                     id: 3,
                     side: *bid_ask,
                     qty: 2,
@@ -976,6 +990,7 @@ mod test {
                 },
             ]);
             let result = ob.execute(OrderType::Limit {
+                user_id: 1,
                 id: 4,
                 side: *ask_bid,
                 qty: 1,
@@ -1066,18 +1081,21 @@ mod test {
         for (bid_ask, ask_bid) in &BID_ASK_COMBINATIONS {
             let (mut ob, results) = init_ob(vec![
                 OrderType::Limit {
+                    user_id: 1,
                     id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
+                    user_id: 1,
                     id: 2,
                     side: *ask_bid,
                     qty: 2,
                     price: 399,
                 },
                 OrderType::Limit {
+                    user_id: 1,
                     id: 3,
                     side: *bid_ask,
                     qty: 2,
@@ -1085,6 +1103,7 @@ mod test {
                 },
             ]);
             let result = ob.execute(OrderType::Limit {
+                user_id: 1,
                 id: 4,
                 side: *ask_bid,
                 qty: 2,
@@ -1175,18 +1194,21 @@ mod test {
         for (bid_ask, ask_bid) in &BID_ASK_COMBINATIONS {
             let (mut ob, results) = init_ob(vec![
                 OrderType::Limit {
+                    user_id: 1,
                     id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
+                    user_id: 1,
                     id: 2,
                     side: *ask_bid,
                     qty: 2,
                     price: 399,
                 },
                 OrderType::Limit {
+                    user_id: 1,
                     id: 3,
                     side: *bid_ask,
                     qty: 2,
@@ -1194,6 +1216,7 @@ mod test {
                 },
             ]);
             let result = ob.execute(OrderType::Limit {
+                user_id: 1,
                 id: 4,
                 side: *ask_bid,
                 qty: 5,
@@ -1287,6 +1310,7 @@ mod test {
         for (_, ask_bid) in &BID_ASK_COMBINATIONS {
             let (mut ob, _) = init_ob(vec![]);
             let result = ob.execute(OrderType::Market {
+                user_id: 1,
                 id: 1,
                 side: *ask_bid,
                 qty: 5,
@@ -1301,18 +1325,21 @@ mod test {
         for (bid_ask, ask_bid) in &BID_ASK_COMBINATIONS {
             let (mut ob, results) = init_ob(vec![
                 OrderType::Limit {
+                    user_id: 1,
                     id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
+                    user_id: 1,
                     id: 2,
                     side: *ask_bid,
                     qty: 2,
                     price: 399,
                 },
                 OrderType::Limit {
+                    user_id: 1,
                     id: 3,
                     side: *bid_ask,
                     qty: 2,
@@ -1320,6 +1347,7 @@ mod test {
                 },
             ]);
             let result = ob.execute(OrderType::Market {
+                user_id: 1,
                 id: 4,
                 side: *ask_bid,
                 qty: 15,
@@ -1423,18 +1451,21 @@ mod test {
         for (bid_ask, ask_bid) in &BID_ASK_COMBINATIONS {
             let (mut ob, results) = init_ob(vec![
                 OrderType::Limit {
+                    user_id: 1,
                     id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
+                    user_id: 1,
                     id: 2,
                     side: *ask_bid,
                     qty: 2,
                     price: 399,
                 },
                 OrderType::Limit {
+                    user_id: 1,
                     id: 3,
                     side: *bid_ask,
                     qty: 2,
@@ -1442,6 +1473,7 @@ mod test {
                 },
             ]);
             let result = ob.execute(OrderType::Market {
+                user_id: 1,
                 id: 4,
                 side: *ask_bid,
                 qty: 7,
@@ -1552,6 +1584,7 @@ mod test {
     fn cancel_resting_order() {
         for (bid_ask, _) in &BID_ASK_COMBINATIONS {
             let (mut ob, results) = init_ob(vec![OrderType::Limit {
+                user_id: 1,
                 id: 1,
                 side: *bid_ask,
                 qty: 12,
@@ -1578,18 +1611,21 @@ mod test {
         for (bid_ask, ask_bid) in &BID_ASK_COMBINATIONS {
             let (mut ob, results) = init_ob(vec![
                 OrderType::Limit {
+                    user_id: 1,
                     id: 1,
                     side: *bid_ask,
                     qty: 12,
                     price: 395,
                 },
                 OrderType::Limit {
+                    user_id: 1,
                     id: 2,
                     side: *ask_bid,
                     qty: 2,
                     price: 399,
                 },
                 OrderType::Limit {
+                    user_id: 1,
                     id: 3,
                     side: *bid_ask,
                     qty: 2,

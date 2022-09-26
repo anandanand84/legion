@@ -5,12 +5,12 @@
 //! use legion::{FillMetadata, OrderBook, OrderEvent, OrderType, Side };
 //!
 //! let mut ob = OrderBook::default();
-//! let event = ob.execute(OrderType::Market { id: 0, qty: 1, side: Side::Bid });
+//! let event = ob.execute(OrderType::Market { id: 0, user_id: 1, qty: 1, side: Side::Bid });
 //!
-//! let event = ob.execute(OrderType::Limit { id: 1, price: 120, qty: 3, side: Side::Ask });
+//! let event = ob.execute(OrderType::Limit { id: 1, user_id: 1, price: 120, qty: 3, side: Side::Ask });
 //! assert_eq!(event, OrderEvent::Open { id: 1 });
 //!
-//! let event = ob.execute(OrderType::Market { id: 2, qty: 4, side: Side::Bid });
+//! let event = ob.execute(OrderType::Market { id: 2, user_id: 1, qty: 4, side: Side::Bid });
 //! assert_eq!(
 //!     event,
 //!     OrderEvent::PartiallyFilled {

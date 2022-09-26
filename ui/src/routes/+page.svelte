@@ -58,10 +58,10 @@
     </div>
     <div class="flex flex-col justify-between">
         <span>order types: limit,market,ioc,fok</span>
-        <span>ordertype,side,quantity,price</span>
+        <span>user_id,ordertype,side,quantity,price</span>
         <span>ex: </span>
-        <span>limit,bid,10,20000</span>
-        <span>limit,ask,10,20001</span>
+        <span>1,limit,bid,10,20000</span>
+        <span>2,limit,ask,10,20001</span>
         <textarea style="border:1px solid grey;" bind:value="{neworders}" />
         <button on:click={processOrders}>Submit</button>
     </div>

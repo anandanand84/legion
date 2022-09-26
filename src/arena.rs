@@ -19,8 +19,8 @@ impl OrderArena {
         self.order_map.get(&id)
     }
 
-    pub fn insert(&mut self, id: u64, price: u64, qty: u64) {
-        self.order_map.insert(id, LimitOrder { id: id, qty, price });
+    pub fn insert(&mut self, id: u64, user_id:u64, price: u64, qty: u64) {
+        self.order_map.insert(id, LimitOrder { id, user_id, qty, price });
     }
 
     pub fn delete(&mut self, id: &u64) -> bool {
