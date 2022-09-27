@@ -292,6 +292,28 @@ impl OrderBook {
         self.arena.delete(&id)
     }
 
+    fn finalize_execution(&mut self, fills: &Vec<FillMetadata>) {
+        fills.iter().for_each(|fill| {
+            let maker_id = fill.order_2;
+            let maker_side = !fill.taker_side;
+            let qty = fill.qty;
+            let remove_maker_order = fill.total_fill;
+            let levels = if maker_side == Side::Bid { &mut self.bids } else { &mut self.asks };  
+            let entry = levels.entry(fill.price).or_insert(Vec::with_capacity(self.default_queue_capacity));
+            let index = entry.binary_search(&maker_id);
+            if remove_maker_order {
+                if let Ok(index) = index {
+                    entry.remove(index);
+                }
+                self.arena.delete(&maker_id);
+            } else { 
+                self.arena[maker_id].qty -= qty;                
+            }
+        });
+        self.update_max_bid();
+        self.update_min_ask();
+    }
+
     fn market(
         &mut self,
         id: OrderId,
@@ -304,9 +326,8 @@ impl OrderBook {
             Side::Bid => self.match_with_asks(id, qty, &mut fills, None),
             Side::Ask => self.match_with_bids(id, qty, &mut fills, None),
         };
-
+        self.finalize_execution(&fills);
         let partial = remaining_qty > 0;
-
         (fills, partial, qty - remaining_qty)
     }
 
@@ -324,8 +345,8 @@ impl OrderBook {
 
         match side {
             Side::Bid => {
-                remaining_qty =
-                    self.match_with_asks(id, qty, &mut fills, Some(price));
+                remaining_qty = self.match_with_asks(id, qty, &mut fills, Some(price));
+                self.finalize_execution(&fills);
                 if remaining_qty > 0 {
                     partial = true;
                     let queue_capacity = self.default_queue_capacity;
@@ -341,8 +362,8 @@ impl OrderBook {
                 }
             }
             Side::Ask => {
-                remaining_qty =
-                    self.match_with_bids(id, qty, &mut fills, Some(price));
+                remaining_qty = self.match_with_bids(id, qty, &mut fills, Some(price));
+                self.finalize_execution(&fills);
                 if remaining_qty > 0 {
                     partial = true;
                     self.arena.insert(id, user_id, price, remaining_qty);
@@ -369,15 +390,15 @@ impl OrderBook {
         limit_price: Option<u64>,
     ) -> u64 {
         let mut remaining_qty = qty;
-        let mut update_bid_ask = false;
+        // let mut update_bid_ask = false;
         for (ask_price, queue) in self.asks.iter_mut() {
             if queue.is_empty() {
                 continue;
             }
-            if (update_bid_ask || self.min_ask == u64::MAX) && !queue.is_empty() {
-                self.min_ask = *ask_price;
-                update_bid_ask = false;
-            }
+            // if (update_bid_ask || self.min_ask == u64::MAX) && !queue.is_empty() {
+            //     self.min_ask = *ask_price;
+            //     update_bid_ask = false;
+            // }
             if let Some(lp) = limit_price {
                 if lp < *ask_price {
                     break;
@@ -386,22 +407,21 @@ impl OrderBook {
             if remaining_qty == 0 {
                 break;
             }
-            //mutation
-            let filled_qty = Self::process_queue(
-                &mut self.arena,
+            let filled_qty = Self::simulate_queue_fills(
+                &self.arena,
                 queue,
                 remaining_qty,
                 id,
                 Side::Bid,
                 fills,
             );
-            if queue.is_empty() {
-                update_bid_ask = true;
-            }
+            // if queue.is_empty() {
+            //     update_bid_ask = true;
+            // }
             remaining_qty -= filled_qty;
         }
 
-        self.update_min_ask();
+        // self.update_min_ask();
         remaining_qty
     }
 
@@ -413,15 +433,15 @@ impl OrderBook {
         limit_price: Option<Price>,
     ) -> u64 {
         let mut remaining_qty = qty;
-        let mut update_bid_ask = false;
+        // let mut update_bid_ask = false;
         for (bid_price, queue) in self.bids.iter_mut().rev() {
             if queue.is_empty() {
                 continue;
             }
-            if (update_bid_ask || self.max_bid == 0) && !queue.is_empty() {
-                self.max_bid = *bid_price;
-                update_bid_ask = false;
-            }
+            // if (update_bid_ask || self.max_bid == 0) && !queue.is_empty() {
+            //     self.max_bid = *bid_price;
+            //     update_bid_ask = false;
+            // }
             if let Some(lp) = limit_price {
                 if lp > *bid_price {
                     break;
@@ -430,21 +450,21 @@ impl OrderBook {
             if remaining_qty == 0 {
                 break;
             }
-            let filled_qty = Self::process_queue(
-                &mut self.arena,
+            let filled_qty = Self::simulate_queue_fills(
+                &self.arena,
                 queue,
                 remaining_qty,
                 id,
                 Side::Ask,
                 fills,
             );
-            if queue.is_empty() {
-                update_bid_ask = true;
-            }
+            // if queue.is_empty() {
+            //     update_bid_ask = true;
+            // }
             remaining_qty -= filled_qty;
         }
 
-        self.update_max_bid();
+        // self.update_max_bid();
         remaining_qty
     }
 
@@ -459,9 +479,9 @@ impl OrderBook {
         self.max_bid = cur_bids.next().map(|(p, _)| *p).unwrap_or(0u64);
     }
 
-    fn process_queue(
-        arena: &mut OrderArena,
-        opposite_orders: &mut Vec<OrderId>,
+    fn simulate_queue_fills(
+        arena: &OrderArena,
+        opposite_orders: &Vec<OrderId>,
         remaining_qty: u64,
         id: u64,
         side: Side,
@@ -469,17 +489,15 @@ impl OrderBook {
     ) -> u64 {
         let mut qty_to_fill = remaining_qty;
         let mut filled_qty = 0;
-        let mut filled_index = None;
-
-        for (index, head_order_id) in opposite_orders.iter_mut().enumerate() {
+        
+        for (_, head_order_id) in opposite_orders.iter().enumerate() {
             if qty_to_fill == 0 {
                 break;
             }
-            let head_order = &mut arena[*head_order_id];
+            let head_order = &arena[*head_order_id];
             let traded_price = head_order.price;
             let available_qty = head_order.qty;
             if available_qty == 0 {
-                filled_index = Some(index);
                 continue;
             }
             let traded_quantity: u64;
@@ -488,14 +506,12 @@ impl OrderBook {
             if qty_to_fill >= available_qty {
                 traded_quantity = available_qty;
                 qty_to_fill -= available_qty;
-                filled_index = Some(index);
                 filled = true;
             } else {
                 traded_quantity = qty_to_fill;
                 qty_to_fill = 0;
                 filled = false;
             }
-            head_order.qty -= traded_quantity;
             let fill = FillMetadata {
                 order_1: id,
                 order_2: head_order.id,
@@ -507,10 +523,6 @@ impl OrderBook {
             fills.push(fill);
             filled_qty += traded_quantity;
         }
-        if let Some(index) = filled_index {
-            opposite_orders.drain(0..index + 1);
-        }
-
         filled_qty
     }
 }
@@ -519,7 +531,7 @@ impl OrderBook {
 mod test {
     use crate::{
         BookDepth, BookLevel, FillMetadata, OrderBook, OrderEvent, OrderType,
-        Side, Trade, rejectmessages::LIQUIDITY_NOT_AVAILABLE,
+        Side, Trade, rejectmessages::LIQUIDITY_NOT_AVAILABLE, models::LimitOrder,
     };
     use std::collections::BTreeMap;
 
@@ -1503,6 +1515,8 @@ mod test {
                     init_book_holes(vec![(395, 1)], vec![398])
                 );
                 assert_eq!(ob.spread(), 4);
+                assert_eq!(ob.arena.get(3), None);
+                assert_eq!(ob.arena.get(1), Some(&LimitOrder{ user_id: 1, id: 1, qty: 7, price: 395 }));
             } else {
                 assert_eq!(
                     results,
@@ -1546,6 +1560,8 @@ mod test {
                 );
                 assert_eq!(ob._bids(), init_book(vec![]));
                 assert_eq!(ob.spread(), 395);
+                assert_eq!(ob.arena.get(3), Some(&LimitOrder { user_id: 1, id: 3, qty: 2, price: 398 }));
+                assert_eq!(ob.arena.get(1), Some(&LimitOrder{ user_id: 1, id: 1, qty: 3, price: 395 }));
             }
         }
     }
@@ -1560,6 +1576,7 @@ mod test {
         assert_eq!(ob._asks(), Vec::new());
         assert_eq!(ob._bids(), Vec::new());
         assert_eq!(ob.spread(), u64::MAX);
+        assert_eq!(ob.arena.get(0), None);
     }
 
     #[test]
@@ -1585,6 +1602,7 @@ mod test {
                 assert_eq!(ob._bids(), Vec::new());
             }
             assert_eq!(ob.spread(), u64::MAX);
+            assert_eq!(ob.arena.get(1), None);
         }
     }
 
