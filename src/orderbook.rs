@@ -294,7 +294,7 @@ impl OrderBook {
 
     fn finalize_execution(&mut self, fills: &Vec<FillMetadata>) {
         fills.iter().for_each(|fill| {
-            let maker_id = fill.order_2;
+            let maker_id = fill.maker_id;
             let maker_side = !fill.taker_side;
             let qty = fill.qty;
             let remove_maker_order = fill.total_fill;
@@ -513,8 +513,8 @@ impl OrderBook {
                 filled = false;
             }
             let fill = FillMetadata {
-                order_1: id,
-                order_2: head_order.id,
+                taker_id: id,
+                maker_id: head_order.id,
                 qty: traded_quantity,
                 price: traded_price,
                 taker_side: side,
@@ -717,8 +717,8 @@ mod test {
                             id: 2,
                             filled_qty: 2,
                             fills: vec![FillMetadata {
-                                order_1: 2,
-                                order_2: 1,
+                                taker_id: 2,
+                                maker_id: 1,
                                 qty: 2,
                                 price: 395,
                                 taker_side: *ask_bid,
@@ -934,8 +934,8 @@ mod test {
                             id: 2,
                             filled_qty: 2,
                             fills: vec![FillMetadata {
-                                order_1: 2,
-                                order_2: 1,
+                                taker_id: 2,
+                                maker_id: 1,
                                 qty: 2,
                                 price: 395,
                                 taker_side: *ask_bid,
@@ -1006,8 +1006,8 @@ mod test {
                         id: 4,
                         filled_qty: 1,
                         fills: vec![FillMetadata {
-                            order_1: 4,
-                            order_2: 3,
+                            taker_id: 4,
+                            maker_id: 3,
                             qty: 1,
                             price: 398,
                             taker_side: *ask_bid,
@@ -1032,8 +1032,8 @@ mod test {
                             id: 2,
                             filled_qty: 2,
                             fills: vec![FillMetadata {
-                                order_1: 2,
-                                order_2: 1,
+                                taker_id: 2,
+                                maker_id: 1,
                                 qty: 2,
                                 price: 395,
                                 taker_side: *ask_bid,
@@ -1049,8 +1049,8 @@ mod test {
                         id: 4,
                         filled_qty: 1,
                         fills: vec![FillMetadata {
-                            order_1: 4,
-                            order_2: 1,
+                            taker_id: 4,
+                            maker_id: 1,
                             qty: 1,
                             price: 395,
                             taker_side: *ask_bid,
@@ -1119,8 +1119,8 @@ mod test {
                         id: 4,
                         filled_qty: 2,
                         fills: vec![FillMetadata {
-                            order_1: 4,
-                            order_2: 3,
+                            taker_id: 4,
+                            maker_id: 3,
                             qty: 2,
                             price: 398,
                             taker_side: *ask_bid,
@@ -1145,8 +1145,8 @@ mod test {
                             id: 2,
                             filled_qty: 2,
                             fills: vec![FillMetadata {
-                                order_1: 2,
-                                order_2: 1,
+                                taker_id: 2,
+                                maker_id: 1,
                                 qty: 2,
                                 price: 395,
                                 taker_side: *ask_bid,
@@ -1162,8 +1162,8 @@ mod test {
                         id: 4,
                         filled_qty: 2,
                         fills: vec![FillMetadata {
-                            order_1: 4,
-                            order_2: 1,
+                            taker_id: 4,
+                            maker_id: 1,
                             qty: 2,
                             price: 395,
                             taker_side: *ask_bid,
@@ -1232,8 +1232,8 @@ mod test {
                         id: 4,
                         filled_qty: 2,
                         fills: vec![FillMetadata {
-                            order_1: 4,
-                            order_2: 3,
+                            taker_id: 4,
+                            maker_id: 3,
                             qty: 2,
                             price: 398,
                             taker_side: *ask_bid,
@@ -1261,8 +1261,8 @@ mod test {
                             id: 2,
                             filled_qty: 2,
                             fills: vec![FillMetadata {
-                                order_1: 2,
-                                order_2: 1,
+                                taker_id: 2,
+                                maker_id: 1,
                                 qty: 2,
                                 price: 395,
                                 taker_side: *ask_bid,
@@ -1278,8 +1278,8 @@ mod test {
                         id: 4,
                         filled_qty: 5,
                         fills: vec![FillMetadata {
-                            order_1: 4,
-                            order_2: 1,
+                            taker_id: 4,
+                            maker_id: 1,
                             qty: 5,
                             price: 395,
                             taker_side: *ask_bid,
@@ -1363,16 +1363,16 @@ mod test {
                         filled_qty: 14,
                         fills: vec![
                             FillMetadata {
-                                order_1: 4,
-                                order_2: 3,
+                                taker_id: 4,
+                                maker_id: 3,
                                 qty: 2,
                                 price: 398,
                                 taker_side: *ask_bid,
                                 total_fill: true,
                             },
                             FillMetadata {
-                                order_1: 4,
-                                order_2: 1,
+                                taker_id: 4,
+                                maker_id: 1,
                                 qty: 12,
                                 price: 395,
                                 taker_side: *ask_bid,
@@ -1395,8 +1395,8 @@ mod test {
                             id: 2,
                             filled_qty: 2,
                             fills: vec![FillMetadata {
-                                order_1: 2,
-                                order_2: 1,
+                                taker_id: 2,
+                                maker_id: 1,
                                 qty: 2,
                                 price: 395,
                                 taker_side: *ask_bid,
@@ -1413,16 +1413,16 @@ mod test {
                         filled_qty: 12,
                         fills: vec![
                             FillMetadata {
-                                order_1: 4,
-                                order_2: 1,
+                                taker_id: 4,
+                                maker_id: 1,
                                 qty: 10,
                                 price: 395,
                                 taker_side: *ask_bid,
                                 total_fill: true,
                             },
                             FillMetadata {
-                                order_1: 4,
-                                order_2: 3,
+                                taker_id: 4,
+                                maker_id: 3,
                                 qty: 2,
                                 price: 398,
                                 taker_side: *ask_bid,
@@ -1489,16 +1489,16 @@ mod test {
                         filled_qty: 7,
                         fills: vec![
                             FillMetadata {
-                                order_1: 4,
-                                order_2: 3,
+                                taker_id: 4,
+                                maker_id: 3,
                                 qty: 2,
                                 price: 398,
                                 taker_side: *ask_bid,
                                 total_fill: true,
                             },
                             FillMetadata {
-                                order_1: 4,
-                                order_2: 1,
+                                taker_id: 4,
+                                maker_id: 1,
                                 qty: 5,
                                 price: 395,
                                 taker_side: *ask_bid,
@@ -1526,8 +1526,8 @@ mod test {
                             id: 2,
                             filled_qty: 2,
                             fills: vec![FillMetadata {
-                                order_1: 2,
-                                order_2: 1,
+                                taker_id: 2,
+                                maker_id: 1,
                                 qty: 2,
                                 price: 395,
                                 taker_side: *ask_bid,
@@ -1543,8 +1543,8 @@ mod test {
                         id: 4,
                         filled_qty: 7,
                         fills: vec![FillMetadata {
-                            order_1: 4,
-                            order_2: 1,
+                            taker_id: 4,
+                            maker_id: 1,
                             qty: 7,
                             price: 395,
                             taker_side: *ask_bid,
@@ -1660,8 +1660,8 @@ mod test {
                             id: 2,
                             filled_qty: 2,
                             fills: vec![FillMetadata {
-                                order_1: 2,
-                                order_2: 1,
+                                taker_id: 2,
+                                maker_id: 1,
                                 qty: 2,
                                 price: 395,
                                 taker_side: *ask_bid,

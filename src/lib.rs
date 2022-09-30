@@ -18,8 +18,8 @@
 //!         filled_qty: 3,
 //!         fills: vec![
 //!             FillMetadata {
-//!                 order_1: 2,
-//!                 order_2: 1,
+//!                 taker_id: 2,
+//!                 maker_id: 1,
 //!                 qty: 3,
 //!                 price: 120,
 //!                 taker_side: Side::Bid,
@@ -43,6 +43,7 @@ mod orderbook;
 mod utils;
 mod wasm;
 mod rejectmessages;
+mod orderbook_test;
 
 pub use models::{
     BookDepth, BookLevel, FillMetadata, OrderEvent, OrderType, Side, Trade,

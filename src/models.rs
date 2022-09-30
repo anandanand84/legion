@@ -143,7 +143,8 @@ impl FromStr for OrderType {
         if  total_fields < 2 {
             return Err(OrderParseError::InvalidFieldSize)
         }
-        let ordertype = fields[2];
+        let order_type_index = if s.to_lowercase().contains("cancel") { 1 } else { 2 };
+        let ordertype = fields[order_type_index];
         match ordertype {
             "market" => {
                 if total_fields < 5 {
@@ -235,9 +236,9 @@ pub enum OrderEvent {
 #[derive(Debug, PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub struct FillMetadata {
     /// The ID of the order that triggered the fill (taker).
-    pub order_1: OrderId,
+    pub taker_id: OrderId,
     /// The ID of the matching order.
-    pub order_2: OrderId,
+    pub maker_id: OrderId,
     /// The quantity that was traded.
     pub qty: Qty,
     /// The price at which the trade happened.

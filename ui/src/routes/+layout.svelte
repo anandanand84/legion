@@ -1,5 +1,8 @@
 <script lang="ts">
   import "../app.postcss";
+  import "carbon-components-svelte/css/all.css";
+  let theme = "g90"; // "white" | "g10" | "g80" | "g90" | "g100"
+  $: document.documentElement.setAttribute("theme", theme);
   import init from "legion";
   let initialized = false;
   init().then(() => {

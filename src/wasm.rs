@@ -2,7 +2,7 @@ use std::{cell::RefCell, str::FromStr, vec};
 
 use wasm_bindgen::prelude::*;
 
-use crate::{Side, OrderType};
+use crate::{Side, OrderType, OrderBook};
 
 #[wasm_bindgen]
 extern {
@@ -78,6 +78,27 @@ pub fn execute_order_text(order:String) -> JsValue {
 
 #[wasm_bindgen]
 #[allow(dead_code)]
+pub fn clear_book() -> () {
+    return ORDER_BOOK.with(|book| {
+        let mut bookref = book.borrow_mut();
+        *bookref = OrderBook::default();
+    })
+}
+
+#[wasm_bindgen]
+#[allow(dead_code)]
+pub fn get_bbo() -> Vec<u64> {
+    return ORDER_BOOK.with(|book| {
+        let depth = book.borrow().depth(1, false);
+        let bid:Vec<u64> = depth.bids.iter().map(|level| vec![level.qty.clone(), level.price.clone()]).flatten().collect();
+        let ask:Vec<u64> = depth.asks.iter().map(|level| vec![level.qty.clone(), level.price.clone()]).flatten().collect();
+        let all:Vec<u64> = bid.into_iter().chain(ask.into_iter()).collect();
+        return all;
+    });
+}
+
+#[wasm_bindgen]
+#[allow(dead_code)]
 pub fn get_last_sequence() -> u64 {
     return ORDER_BOOK.with(|book| {
         book.borrow().last_sequence()
@@ -87,28 +108,7 @@ pub fn get_last_sequence() -> u64 {
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn add_random_orders() -> JsValue{
-    let orders = vec![
-        "1,1,limit,BID,10,19990",
-        "2,1,limit,BID,20,19989",
-        "3,1,limit,BID,3,19978",
-        "4,1,limit,BID,4,19955",
-        "5,1,limit,BID,10,19991",
-        "6,1,limit,BID,20,19994",
-        "7,1,limit,BID,3,19990",
-        "8,1,limit,BID,4,19979",
-        "9,1,limit,ASK,5,19990",
-        "10,1,limit,ASK,12,19999",
-        "11,1,limit,ASK,3,20012",
-        "12,1,limit,ASK,4,20042",
-        "13,1,limit,ASK,100,20000",
-        "14,1,limit,ASK,20,20001",
-        "15,1,limit,ASK,3,20003",
-        "16,1,limit,ASK,4,20012",
-        "17,1,limit,ASK,1,20011",
-        "18,1,limit,ASK,2,20009",
-        "19,1,limit,ASK,2,20006",
-        "20,1,limit,ASK,2,20006",
-    ];
+    let orders:Vec<String> = Vec::new();
     let mut events = Vec::new();
     ORDER_BOOK.with(|book| {
         let mut book_state = book.borrow_mut();
