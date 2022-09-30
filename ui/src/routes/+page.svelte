@@ -40,7 +40,7 @@
             level.total = current + level.qty;
             return level.total
         }, 0);
-        book.bids.reverse().reduce((current:number, level: any)=> {
+        book.bids.reduce((current:number, level: any)=> {
             level.total = current + level.qty;
             return level.total
         }, 0)
@@ -215,7 +215,7 @@
         {/each}
     </div>
     <div style="overflow:auto;min-width:450px;" class="h-full m-0 p-5">
-        {#each events.reverse() as event}
+        {#each [...events].reverse() as event}
         <div class="transparent-border p-3" class:event-red={!event.success} class:event-green={event.success} style="width: 400px;">
             {#if event.message?.length > 0}
                 <h5 class="flex flex-row justify-between mb-5">

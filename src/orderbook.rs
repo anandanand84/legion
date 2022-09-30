@@ -128,8 +128,11 @@ impl OrderBook {
     pub fn depth(&self, levels: usize, include_orders: bool) -> BookDepth {
         let mut asks: Vec<BookLevel> = Vec::with_capacity(levels);
         let mut bids: Vec<BookLevel> = Vec::with_capacity(levels);
-
-        for (ask_price, queue) in self.asks.iter() {
+        
+        for (index, (ask_price, queue)) in self.asks.iter().enumerate() {
+            if index >= levels {
+                break;
+            }
             let mut qty = 0;
             for idx in queue {
                 qty += self.arena[*idx].qty;
@@ -143,7 +146,10 @@ impl OrderBook {
             }
         }
 
-        for (bid_price, queue) in self.bids.iter() {
+        for (index, (bid_price, queue)) in self.bids.iter().rev().enumerate() {
+            if index >= levels {
+                break;
+            }
             let mut qty = 0;
             for idx in queue {
                 qty += self.arena[*idx].qty;
