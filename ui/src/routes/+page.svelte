@@ -34,11 +34,13 @@
     import PostonlyBidCancelled from '../../../src/tests/postonly-bid-cancelled.txt?raw';
     import PostonlyBidOpen from '../../../src/tests/postonly-bid-open.txt?raw';
 
+    import PostonlySlideBidOpen from '../../../src/tests/postonlyslide-bid-open.txt?raw';
 
     let paused = true;
     let started = false;
     let runningAll = false;
 
+    let playPause:any;
 
     $: playPause= paused ? playPause = Play : playPause = Pause;
 
@@ -46,6 +48,10 @@
 
     let tests = [
         { name: "--Select--", value: ""},
+        { name: "Postonly bid Cancelled", value: PostonlyBidCancelled },
+        { name: "Postonly bid Open", value: PostonlyBidOpen },
+
+        { name: "PostonlySlide bid Open", value: PostonlySlideBidOpen },
         { name: "Resting Orders", value: restingorder },
         
         { name: "Market Bid No Liquidity", value: MarketBidNoliquidity },
@@ -72,10 +78,7 @@
 
         { name: "FOK bid Cancelled", value: FokBidCancelled },
         { name: "FOK bid fully filled", value: FokBidCompletelyfillled },
-        { name: "FOK bid partially cancelled", value: FokBidPartialCancelled },
-
-        { name: "Postonly bid Cancelled", value: PostonlyBidCancelled },
-        { name: "Postonly bid Open", value: PostonlyBidOpen }
+        { name: "FOK bid partially cancelled", value: FokBidPartialCancelled }
     ]
 
     let spreadElement:HTMLElement | any = null;
@@ -353,7 +356,7 @@
                          <SelectItem value="{test.value}" text="{test.name}" />
                     {/each}
                 </Select>
-                <Button iconDescription="Pause" disabled={runningAll} on:click={()=> {paused=!paused; if(!started){delay=500;processOrders(neworders)}} } icon={playPause} />
+                <Button iconDescription="Pause" disabled={runningAll} on:click={()=> {paused=!paused; if(!started){delay=200;processOrders(neworders)}} } icon={playPause} />
                 <Button iconDescription="Forward" disabled={runningAll} on:click={()=> next=true } icon={Forward} />
             </div>
         </div>

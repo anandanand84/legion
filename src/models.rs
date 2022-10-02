@@ -81,7 +81,7 @@ pub enum OrderType {
         /// other orders at this price or better.
         price: Price,
     },
-    // /// Fill or Kill order, which fills completely or rejects everything, no partial fills
+    /// Fill or Kill order, which fills completely or rejects everything, no partial fills
     FOK {
         /// The unique ID of this order.
         id: OrderId,
@@ -96,7 +96,7 @@ pub enum OrderType {
         /// other orders at this price or better.
         price: Price,
     },
-    // /// Postonly order, always enters the book and don't get filled immediatly. if order doesn't enter book it is cancelled. Opposite of FOK.
+    /// Postonly order, always enters the book and don't get filled immediatly. if order doesn't enter book it is cancelled. Opposite of FOK.
     Postonly {
         /// The unique ID of this order.
         id: OrderId,
@@ -111,7 +111,7 @@ pub enum OrderType {
         /// other orders at this price or better.
         price: Price,
     },
-    // /// PostonlySlide order, always enters the book and don't get filled immediatly. if order prices crosses the book, it enters at the best book price instead of the given price, 
+    /// PostonlySlide order, always enters the book and don't get filled immediatly. if order prices crosses the book, it enters at the best book price instead of the given price, 
     PostonlySlide {
         /// The unique ID of this order.
         id: OrderId,
@@ -143,8 +143,8 @@ impl OrderType {
             OrderType::Cancel { id } => *id,
             OrderType::IOC { user_id:_, id, side:_, qty:_, price:_ } => *id,
             OrderType::FOK { user_id:_, id, side:_, qty:_, price:_ } => *id,
-            OrderType::Postonly { id, user_id, side, qty, price } => *id,
-            OrderType::PostonlySlide { id, user_id, side, qty, price } => *id,
+            OrderType::Postonly { id, user_id:_, side:_, qty:_, price:_ } => *id,
+            OrderType::PostonlySlide { id, user_id:_, side:_, qty:_, price:_ } => *id,
         }
     }
 
@@ -156,8 +156,8 @@ impl OrderType {
             OrderType::Cancel { id:_ } => "cancel",
             OrderType::IOC { id:_, user_id:_,  side:_, qty:_, price:_ } => "ioc",
             OrderType::FOK { id:_, user_id:_,  side:_, qty:_, price:_ } => "fok",
-            OrderType::Postonly { id, user_id, side, qty, price } => "postonly",
-            OrderType::PostonlySlide { id, user_id, side, qty, price } => "postonlyslide",
+            OrderType::Postonly { id:_, user_id:_, side:_, qty:_, price:_ }  => "postonly",
+            OrderType::PostonlySlide { id:_, user_id:_, side:_, qty:_, price:_ } => "postonlyslide",
         }
     }
 }

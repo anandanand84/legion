@@ -308,8 +308,8 @@ impl OrderBook {
                 }
             }
             OrderType::Postonly { id, user_id, side, qty, price } => {
-                let (fills, partial, filled_qty) = self.postonly(id, user_id, side, qty, price);
-                if fills.is_empty() {
+                let (_fills, _partial, filled_qty) = self.postonly(id, user_id, side, qty, price);
+                if filled_qty == 0 {
                     OrderEvent::Open { id }
                 } else {
                     OrderEvent::Cancelled { id }
@@ -317,8 +317,8 @@ impl OrderBook {
             },
             
             OrderType::PostonlySlide { id, user_id, side, qty, price } => {
-                let (fills, partial, filled_qty) = self.postonlyslide(id, user_id, side, qty, price);
-                if fills.is_empty() {
+                let (_fills, _partial, filled_qty) = self.postonlyslide(id, user_id, side, qty, price);
+                if filled_qty == 0 {
                     OrderEvent::Open { id }
                 } else {
                     OrderEvent::Cancelled { id }
@@ -389,57 +389,59 @@ impl OrderBook {
     
 
     fn postonlyslide(&mut self, id: u64, user_id: u64, side: Side, qty: u64, price: u64) -> (Vec<FillMetadata>, bool, u64) {
-        let mut partial= false;
+        let partial= false;
         let remaining_qty;
-        let mut fills: Vec<FillMetadata> = Vec::new();
+        let fills: Vec<FillMetadata> = Vec::new();
 
         match side {
             Side::Bid => {
-                remaining_qty = self.match_with_asks(id, qty, &mut fills, Some(price));
-                if qty == remaining_qty {
-                    let queue_capacity = self.default_queue_capacity;
-                    self.arena.insert(id, user_id, price, remaining_qty);
-                    self.bids
-                        .entry(price)
-                        .or_insert_with(|| Vec::with_capacity(queue_capacity))
-                        .push(id);
-                    if price > self.max_bid {
-                        self.max_bid = price;
-                    }
+                let insert_price = if price < self.min_ask {
+                    price
+                } else {
+                    self.min_ask - 1u64
+                };
+                let queue_capacity = self.default_queue_capacity;
+                self.arena.insert(id, user_id, insert_price, qty);
+                self.bids
+                    .entry(insert_price)
+                    .or_insert_with(|| Vec::with_capacity(queue_capacity))
+                    .push(id);
+                if insert_price > self.max_bid {
+                    self.max_bid = price;
                 }
+                remaining_qty = qty
             }
             Side::Ask => {
-                remaining_qty = self.match_with_bids(id, qty, &mut fills, Some(price));
-                if qty == remaining_qty {
-                    if remaining_qty > 0 {
-                        partial = true;
-                        self.arena.insert(id, user_id, price, remaining_qty);
-                        let queue_capacity = self.default_queue_capacity;
-                        self.asks
-                            .entry(price)
-                            .or_insert_with(|| Vec::with_capacity(queue_capacity))
-                            .push(id);
-                        if price < self.min_ask {
-                            self.min_ask = price;
-                        }
-                    }
+                let insert_price = if price > self.max_bid {
+                    price
+                } else {
+                    self.max_bid + 1u64
+                };
+                let queue_capacity = self.default_queue_capacity;
+                self.arena.insert(id, user_id, insert_price, qty);
+                self.asks
+                    .entry(insert_price)
+                    .or_insert_with(|| Vec::with_capacity(queue_capacity))
+                    .push(id);
+                if insert_price < self.min_ask {
+                    self.min_ask = price;
                 }
+                remaining_qty = qty
             }
         }
         (fills, partial, qty - remaining_qty)
     }
 
     fn postonly(&mut self, id: u64, user_id: u64, side: Side, qty: u64, price: u64) -> (Vec<FillMetadata>, bool, u64) {
-        let mut partial = false;
+        let partial= false;
         let remaining_qty;
-        let mut fills: Vec<FillMetadata> = Vec::new();
+        let fills: Vec<FillMetadata> = Vec::new();
 
         match side {
             Side::Bid => {
-                remaining_qty = self.match_with_asks(id, qty, &mut fills, Some(price));
-                if qty == remaining_qty {
+                let filled = if price < self.min_ask {
                     let queue_capacity = self.default_queue_capacity;
-                    self.arena.insert(id, user_id, price, remaining_qty);
+                    self.arena.insert(id, user_id, price, qty);
                     self.bids
                         .entry(price)
                         .or_insert_with(|| Vec::with_capacity(queue_capacity))
@@ -447,24 +449,28 @@ impl OrderBook {
                     if price > self.max_bid {
                         self.max_bid = price;
                     }
-                }
+                    0u64
+                } else {
+                    1u64
+                };
+                remaining_qty = qty - filled
             }
             Side::Ask => {
-                remaining_qty = self.match_with_bids(id, qty, &mut fills, Some(price));
-                if qty == remaining_qty {
-                    if remaining_qty > 0 {
-                        partial = true;
-                        self.arena.insert(id, user_id, price, remaining_qty);
-                        let queue_capacity = self.default_queue_capacity;
-                        self.asks
-                            .entry(price)
-                            .or_insert_with(|| Vec::with_capacity(queue_capacity))
-                            .push(id);
-                        if price < self.min_ask {
-                            self.min_ask = price;
-                        }
+                let filled = if price > self.max_bid {
+                    let queue_capacity = self.default_queue_capacity;
+                    self.arena.insert(id, user_id, price, qty);
+                    self.asks
+                        .entry(price)
+                        .or_insert_with(|| Vec::with_capacity(queue_capacity))
+                        .push(id);
+                    if price < self.min_ask {
+                        self.min_ask = price;
                     }
-                }
+                    0u64
+                } else {
+                    1u64
+                };
+                remaining_qty = qty - filled
             }
         }
         (fills, partial, qty - remaining_qty)
