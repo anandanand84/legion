@@ -1,5 +1,8 @@
 <script lang="ts">
+	import TrashCan from 'carbon-icons-svelte/lib/TrashCan.svelte';
     import * as legion from "legion";
+    import '@spectrum-web-components/overlay/overlay-trigger.js';
+    import '@spectrum-web-components/popover/sp-popover.js';
     import { Tooltip, TextArea, Button, Select, SelectItem, Slider, ButtonSet } from "carbon-components-svelte";
     import Pause from "carbon-icons-svelte/lib/PauseFilled.svelte";
     import Play from "carbon-icons-svelte/lib/PlayFilled.svelte";
@@ -266,12 +269,39 @@
     .event-green {
         background-color: #339945;
     }
+    
+    overlay-trigger {
+        flex: none;
+    }
+
+    sp-popover {
+        background-color: rgb(57, 57, 57);
+        color: white;
+        padding: 4px 10px;
+        font-size: 10px;
+    }
 </style>
 
 <div class="w-full h-full flex flex-row items-center justify-around pt-5 pb-5">
     <div class="h-full overflow-auto hide-scroll shadow-2xl">
         {#each book.asks as ask}
-            <DepthRow sizeInteger={5} priceInteger={5} priceDecimals={0} bid={false} price={ask.price} size={ask.qty} value={ask.total}></DepthRow>
+            <overlay-trigger id="trigger" placement="right" offset="0">
+                <div slot="trigger">
+                    <DepthRow sizeInteger={5} priceInteger={5} priceDecimals={0} bid={false} price={ask.price} size={ask.qty} value={ask.total}></DepthRow>
+                </div>
+                <sp-popover dialog slot="hover-content" direction="right">
+                    <div class="p-3">
+                        {#if ask.qty > 0}
+                            <span class="mb-3">Price: {ask.price}</span>
+                            {#each ask.orders as order}
+                            <div class="flex flex-row justify-between mt-2 items-center">
+                                <span>User: {order.user_id}</span><span>Order ID: {order.id}</span><span>Qty: {order.qty}</span><Button kind="danger-tertiary"  iconDescription="Cancel" on:click={()=> { legion.execute_order_text(`${order.id},cancel`);book = legion.get_book_state(); } } icon={TrashCan} size="small"/>
+                            </div>
+                            {/each}
+                        {/if}
+                    </div>
+                </sp-popover>
+            </overlay-trigger>
             <!-- <div class="relative flex flex-row justify-around ml-3 mr-5 p-3">
                 <div>
                     {#if ask.qty > 0}
@@ -295,7 +325,24 @@
             <div class="p-3"> Spread: {spread}</div>
         </div>
         {#each book.bids as bid}
-            <DepthRow sizeInteger={5} priceInteger={5} priceDecimals={0} bid={true} price={bid.price} size={bid.qty} value={bid.total}></DepthRow>
+            <overlay-trigger id="trigger" placement="right" offset="0">
+                <div slot="trigger">
+                    <DepthRow sizeInteger={5} priceInteger={5} priceDecimals={0} bid={true} price={bid.price} size={bid.qty} value={bid.total}></DepthRow>
+                </div>
+                <sp-popover dialog slot="hover-content" direction="right">
+                    <div class="p-3">
+                        {#if bid.qty > 0}
+                            <span class="mb-3">Price: {bid.price}</span>
+                            {#each bid.orders as order}
+                            <div class="flex flex-row justify-between mt-2 items-center">
+                                <span>User: {order.user_id}</span><span>Order ID: {order.id}</span><span>Qty: {order.qty}</span><Button kind="danger-tertiary"  iconDescription="Cancel" on:click={()=> { legion.execute_order_text(`${order.id},cancel`);book = legion.get_book_state(); } } icon={TrashCan} size="small"/>
+                            </div>
+                            {/each}
+                        {/if}
+                    </div>
+                </sp-popover>
+            </overlay-trigger>
+            
             
             <!-- <div class="flex flex-row justify-around ml-3 p-3">
                 <div>
