@@ -3,15 +3,15 @@
       color: #aeaeb2;
     }
   </style>
-  <script>
+  <script lang="ts">
     import InlineEdit from './InlineEdit.svelte';
   
-    export let label;
-    export let value;
-    export let title;
+    export let label="";
+    export let value="";
+    export let title="";
     
     export let editable = false;
-    export let editoptions = [];
+    export let editoptions:any = [];
   
     let color = "white";
 

@@ -3,7 +3,7 @@
     import { Tooltip, TextArea, Button, Select, SelectItem, Slider, ButtonSet } from "carbon-components-svelte";
     import Pause from "carbon-icons-svelte/lib/PauseFilled.svelte";
     import Play from "carbon-icons-svelte/lib/PlayFilled.svelte";
-    import Forward from "carbon-icons-svelte/lib/Forward_5.svelte";
+    import Forward from "carbon-icons-svelte/lib/SkipForwardFilled.svelte";
 
     import LabelValue from "../../src/components/display/LabelValue.svelte";
     import DepthRow from "../../src/components/market-depth/DepthRow.svelte";
@@ -31,13 +31,16 @@
     import FokBidCompletelyfillled from '../../../src/tests/fok-bid-completelyfilled.txt?raw';
     import FokBidCancelled from '../../../src/tests/fok-bid-cancelled.txt?raw';
 
+    import PostonlyBidCancelled from '../../../src/tests/postonly-bid-cancelled.txt?raw';
+    import PostonlyBidOpen from '../../../src/tests/postonly-bid-open.txt?raw';
+
 
     let paused = true;
     let started = false;
     let runningAll = false;
 
 
-    $: playPause = paused ? playPause = Play : playPause = Pause;
+    $: playPause= paused ? playPause = Play : playPause = Pause;
 
     let next = false;
 
@@ -69,10 +72,13 @@
 
         { name: "FOK bid Cancelled", value: FokBidCancelled },
         { name: "FOK bid fully filled", value: FokBidCompletelyfillled },
-        { name: "FOK bid partially cancelled", value: FokBidPartialCancelled }
+        { name: "FOK bid partially cancelled", value: FokBidPartialCancelled },
+
+        { name: "Postonly bid Cancelled", value: PostonlyBidCancelled },
+        { name: "Postonly bid Open", value: PostonlyBidOpen }
     ]
 
-    let spreadElement: HTMLElement = null;
+    let spreadElement:HTMLElement | any = null;
 
     let spread = 0;
     // let status = legion.place_limit(1n, "BID", 2n, 20000n);

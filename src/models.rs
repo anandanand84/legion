@@ -96,6 +96,36 @@ pub enum OrderType {
         /// other orders at this price or better.
         price: Price,
     },
+    // /// Postonly order, always enters the book and don't get filled immediatly. if order doesn't enter book it is cancelled. Opposite of FOK.
+    Postonly {
+        /// The unique ID of this order.
+        id: OrderId,
+        /// User id for this order
+        user_id: UserId,
+        /// The order side. It will be matched against the resting orders on the
+        /// other side of the order book.
+        side: Side,
+        /// The order quantity.
+        qty: Qty,
+        /// The limit price. The order book will only match this order with
+        /// other orders at this price or better.
+        price: Price,
+    },
+    // /// PostonlySlide order, always enters the book and don't get filled immediatly. if order prices crosses the book, it enters at the best book price instead of the given price, 
+    PostonlySlide {
+        /// The unique ID of this order.
+        id: OrderId,
+        /// User id for this order
+        user_id: UserId,
+        /// The order side. It will be matched against the resting orders on the
+        /// other side of the order book.
+        side: Side,
+        /// The order quantity.
+        qty: Qty,
+        /// The limit price. The order book will only match this order with
+        /// other orders at this price or better.
+        price: Price,
+    },
     /// A cancel order, which removes the order with the specified ID from the
     /// order book.
     Cancel {
@@ -113,6 +143,8 @@ impl OrderType {
             OrderType::Cancel { id } => *id,
             OrderType::IOC { user_id:_, id, side:_, qty:_, price:_ } => *id,
             OrderType::FOK { user_id:_, id, side:_, qty:_, price:_ } => *id,
+            OrderType::Postonly { id, user_id, side, qty, price } => *id,
+            OrderType::PostonlySlide { id, user_id, side, qty, price } => *id,
         }
     }
 
@@ -124,6 +156,8 @@ impl OrderType {
             OrderType::Cancel { id:_ } => "cancel",
             OrderType::IOC { id:_, user_id:_,  side:_, qty:_, price:_ } => "ioc",
             OrderType::FOK { id:_, user_id:_,  side:_, qty:_, price:_ } => "fok",
+            OrderType::Postonly { id, user_id, side, qty, price } => "postonly",
+            OrderType::PostonlySlide { id, user_id, side, qty, price } => "postonlyslide",
         }
     }
 }
@@ -194,6 +228,30 @@ impl FromStr for OrderType {
                     return Err(OrderParseError::InvalidFieldSize)
                 }
                 Ok(OrderType::FOK { 
+                    id: fields[0].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
+                    user_id: fields[1].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
+                    side: Side::from_str(fields[3]).map_err(|_| OrderParseError::InvalidSide)?, 
+                    qty: fields[4].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
+                    price: fields[5].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?, 
+                })
+            },
+            "postonly" => {
+                if total_fields < 6 {
+                    return Err(OrderParseError::InvalidFieldSize)
+                }
+                Ok(OrderType::Postonly { 
+                    id: fields[0].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
+                    user_id: fields[1].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
+                    side: Side::from_str(fields[3]).map_err(|_| OrderParseError::InvalidSide)?, 
+                    qty: fields[4].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
+                    price: fields[5].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?, 
+                })
+            },
+            "postonlyslide" => {
+                if total_fields < 6 {
+                    return Err(OrderParseError::InvalidFieldSize)
+                }
+                Ok(OrderType::PostonlySlide { 
                     id: fields[0].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
                     user_id: fields[1].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
                     side: Side::from_str(fields[3]).map_err(|_| OrderParseError::InvalidSide)?, 
