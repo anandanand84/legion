@@ -277,6 +277,25 @@ impl OrderBook {
                 self.cancel(id);
                 OrderEvent::Cancelled { id }
             }
+            OrderType::IOC { id, user_id, side, qty, price } => {
+                let (fills, partial, filled_qty) = self.ioc(id, user_id, side, qty, price);
+                if fills.is_empty() {
+                    OrderEvent::Cancelled { id }
+                } else if partial {
+                    OrderEvent::PartiallyFilled {
+                        id,
+                        filled_qty,
+                        fills,
+                    }
+                } else {
+                    OrderEvent::Filled {
+                        id,
+                        filled_qty,
+                        fills,
+                    }
+                }
+            },
+            OrderType::FOK { id, user_id, side, qty, price } => todo!(),
         }
     }
 
@@ -340,6 +359,34 @@ impl OrderBook {
         (fills, partial, qty - remaining_qty)
     }
 
+    fn ioc(
+        &mut self,
+        id: OrderId,
+        _user_id: UserId,
+        side: Side,
+        qty: u64,
+        price: u64,
+    ) -> (Vec<FillMetadata>, bool, u64) {
+        let partial;
+        let remaining_qty;
+        let mut fills: Vec<FillMetadata> = Vec::new();
+
+        match side {
+            Side::Bid => {
+                remaining_qty = self.match_with_asks(id, qty, &mut fills, Some(price));
+                self.finalize_execution(&fills);
+                partial = remaining_qty > 0;
+            }
+            Side::Ask => {
+                remaining_qty = self.match_with_bids(id, qty, &mut fills, Some(price));
+                self.finalize_execution(&fills);
+                partial = remaining_qty > 0;
+            }
+        }
+
+        (fills, partial, qty - remaining_qty)
+    }
+
     fn limit(
         &mut self,
         id: OrderId,
@@ -392,7 +439,7 @@ impl OrderBook {
     }
 
     fn match_with_asks(
-        &mut self,
+        &self,
         id: OrderId,
         qty: u64,
         fills: &mut Vec<FillMetadata>,
@@ -400,7 +447,7 @@ impl OrderBook {
     ) -> u64 {
         let mut remaining_qty = qty;
         // let mut update_bid_ask = false;
-        for (ask_price, queue) in self.asks.iter_mut() {
+        for (ask_price, queue) in self.asks.iter() {
             if queue.is_empty() {
                 continue;
             }
@@ -435,7 +482,7 @@ impl OrderBook {
     }
 
     fn match_with_bids(
-        &mut self,
+        &self,
         id: OrderId,
         qty: Qty,
         fills: &mut Vec<FillMetadata>,
@@ -443,7 +490,7 @@ impl OrderBook {
     ) -> u64 {
         let mut remaining_qty = qty;
         // let mut update_bid_ask = false;
-        for (bid_price, queue) in self.bids.iter_mut().rev() {
+        for (bid_price, queue) in self.bids.iter().rev() {
             if queue.is_empty() {
                 continue;
             }

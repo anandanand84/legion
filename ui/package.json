@@ -15,6 +15,7 @@
     "@sveltejs/kit": "next",
     "autoprefixer": "^10.4.7",
     "carbon-components-svelte": "^0.70.9",
+    "carbon-icons-svelte": "^11.3.0",
     "postcss": "^8.4.14",
     "postcss-load-config": "^4.0.1",
     "svelte": "^3.44.0",

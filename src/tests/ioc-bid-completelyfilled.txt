@@ -7,3 +7,10 @@
 1,limit,bid,4,998-open,6
 1,limit,bid,20,995-open,7
 1,limit,bid,2,994-open,8
+bbo-5,999,4,1002
+
+1,ioc,bid,2,1002-filled,9
+bbo-5,999,2,1002
+
+1,ioc,bid,57,1005-filled,10
+bbo-5,999,50,1006

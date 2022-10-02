@@ -1,6 +1,10 @@
 <script lang="ts">
     import * as legion from "legion";
     import { Tooltip, TextArea, Button, Select, SelectItem, Slider, ButtonSet } from "carbon-components-svelte";
+    import Pause from "carbon-icons-svelte/lib/PauseFilled.svelte";
+    import Play from "carbon-icons-svelte/lib/PlayFilled.svelte";
+    import Forward from "carbon-icons-svelte/lib/Forward_5.svelte";
+
     import LabelValue from "../../src/components/display/LabelValue.svelte";
     import DepthRow from "../../src/components/market-depth/DepthRow.svelte";
     import restingorder from '../../../src/tests/restingorder.txt?raw'
@@ -18,15 +22,31 @@
     import CancelTopOfBookSome from  '../../../src/tests/cancel-top-of-book-some.txt?raw';
     import CancelTopOfBookAll from  '../../../src/tests/cancel-top-of-book-all.txt?raw';
     import CancelBookMiddle from  '../../../src/tests/cancel-book-middle.txt?raw';
-    
+    import IocBidPartiallyfilled from '../../../src/tests/ioc-bid-partiallyfilled.txt?raw';
+    import IocBidCompletelyfillled from '../../../src/tests/ioc-bid-completelyfilled.txt?raw';
+    import IocBidCancelled from '../../../src/tests/ioc-bid-cancelled.txt?raw';
 
-    
+
+    let paused = true;
+    let started = false;
+    let runningAll = false;
+
+
+    $: playPause = paused ? playPause = Play : playPause = Pause;
+
+    let next = false;
+
     let tests = [
         { name: "--Select--", value: ""},
         { name: "Resting Orders", value: restingorder },
         
         { name: "Market Bid No Liquidity", value: MarketBidNoliquidity },
         { name: "Market Ask No Liquidity", value: MarketAskNoliquidity },
+
+
+        { name: "Cancel Some Top of Book", value: CancelTopOfBookSome },
+        { name: "Cancel All Top of Book", value: CancelTopOfBookAll },
+        { name: "CancelBookMiddle", value: CancelBookMiddle },
         
         { name: "Limit Bid Completelyfilled One Level", value: LimitBidCompletelyfilledOneLevel },
 
@@ -38,9 +58,9 @@
         { name: "Limit Bid Completelyfilled One Level1", value: LimitBidCompletelyfilledOneLevel1 },
         { name: "Limit Bid Completelyfilled Two Level1", value: LimitBidCompletelyfilledTwoLevel1 },
 
-        { name: "Cancel Some Top of Book", value: CancelTopOfBookSome },
-        { name: "Cancel All Top of Book", value: CancelTopOfBookAll },
-        { name: "CancelBookMiddle", value: CancelBookMiddle },
+        { name: "IOC bid Cancelled", value: IocBidCancelled },
+        { name: "IOC bid fully filled", value: IocBidCompletelyfillled },
+        { name: "IOC bid partially filled", value: IocBidPartiallyfilled }
     ]
 
     let spreadElement: HTMLElement = null;
@@ -103,11 +123,14 @@
     }
 
     async function processAllOrders() {
+        runningAll = true;
+        paused = false;
         for (const test of tests) {
             clearBook();
             neworders = test.value;
             await processOrders(test.value);
         }
+        runningAll = false;
     }
 
     let textarea:any=null;
@@ -119,14 +142,21 @@
     }
 
     async function processOrders(testorders:string) {
+        started = true;
         let start = 0;
         let orders = testorders.split('\n');
         for (const orderString of orders) {
+            while (paused && !next) {
+                await sleep(200);
+            }
             if (orderString.length == 0) {
                 start = start + 1;
                 continue;
             }
-            await sleep(delay)
+            if(!next){
+                await sleep(delay)
+            }
+            next = false;
             showSelection(start, start+orderString.length)
             let [order, result] = orderString.split('-')
             if (order.length != 0) {
@@ -155,6 +185,7 @@
                         parsed.message = 'BBO Dont match'
                     }
                     events = [...events, parsed];
+                    start = start+orderString.length + 1;
                     continue;
                 } else {
                     event = legion.execute_order_text(`${last_processed + 1n},${order}`);
@@ -187,6 +218,10 @@
             start = start+orderString.length + 1;
         }
         document.getSelection()?.removeAllRanges();
+        started = false;
+        if(!runningAll) {
+            paused = true;
+        }
     }
 </script>
 
@@ -297,15 +332,20 @@
                 maxLabel="10000 msec"
                 bind:value={delay}
                 />
-            <Select bind:selected={neworders}>
-                {#each tests as test}
-                     <SelectItem value="{test.value}" text="{test.name}" />
-                {/each}
-            </Select>
+            <div class="flex flex-row items-end">
+                <Select size="xl" bind:selected={neworders}>
+                    {#each tests as test}
+                         <SelectItem value="{test.value}" text="{test.name}" />
+                    {/each}
+                </Select>
+                <Button iconDescription="Pause" disabled={runningAll} on:click={()=> {paused=!paused; if(!started){delay=500;processOrders(neworders)}} } icon={playPause} />
+                <Button iconDescription="Forward" disabled={runningAll} on:click={()=> next=true } icon={Forward} />
+            </div>
         </div>
         <textarea bind:this={textarea} style="padding:10px;font-size:1.2rem; line-height:2rem; background:#393939;" bind:value="{neworders}" cols="50" class="flex-1 mt-3a"></textarea>
         <ButtonSet>
-            <Button on:click={()=> clearBook()}>Clear Book</Button> <Button on:click={()=> processOrders(neworders)}>Test</Button> <Button on:click={processAllOrders}>Test ALL</Button>
+            <Button on:click={()=> clearBook()}>Clear Book</Button>
+            <Button on:click={processAllOrders}>Test ALL</Button>
         </ButtonSet>
     </div>
 </div>

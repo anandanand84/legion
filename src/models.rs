@@ -65,33 +65,37 @@ pub enum OrderType {
         /// other orders at this price or better.
         price: Price,
     },
-    // /// A Imediate or cancel order, which filled immediately the avilable qty at the price
-    // ///  and cancels the remaining qty
-    // IOC {
-    //     /// The unique ID of this order.
-    //     id: OrderId,
-    //     /// The order side. It will be matched against the resting orders on the
-    //     /// other side of the order book.
-    //     side: Side,
-    //     /// The order quantity.
-    //     qty: Qty,
-    //     /// The limit price. The order book will only match this order with
-    //     /// other orders at this price or better.
-    //     price: Price,
-    // },
+    /// A Imediate or cancel order, which filled immediately the avilable qty at the price
+    ///  and cancels the remaining qty
+    IOC {
+        /// The unique ID of this order.
+        id: OrderId,
+        /// User id for this order
+        user_id: UserId,
+        /// The order side. It will be matched against the resting orders on the
+        /// other side of the order book.
+        side: Side,
+        /// The order quantity.
+        qty: Qty,
+        /// The limit price. The order book will only match this order with
+        /// other orders at this price or better.
+        price: Price,
+    },
     // /// Fill or Kill order, which fills completely or rejects everything, no partial fills
-    // FOK {
-    //     /// The unique ID of this order.
-    //     id: OrderId,
-    //     /// The order side. It will be matched against the resting orders on the
-    //     /// other side of the order book.
-    //     side: Side,
-    //     /// The order quantity.
-    //     qty: Qty,
-    //     /// The limit price. The order book will only match this order with
-    //     /// other orders at this price or better.
-    //     price: Price,
-    // },
+    FOK {
+        /// The unique ID of this order.
+        id: OrderId,
+        /// User id for this order
+        user_id: UserId,
+        /// The order side. It will be matched against the resting orders on the
+        /// other side of the order book.
+        side: Side,
+        /// The order quantity.
+        qty: Qty,
+        /// The limit price. The order book will only match this order with
+        /// other orders at this price or better.
+        price: Price,
+    },
     /// A cancel order, which removes the order with the specified ID from the
     /// order book.
     Cancel {
@@ -107,6 +111,8 @@ impl OrderType {
             OrderType::Market { id, user_id: _, side:_, qty:_ } => *id,
             OrderType::Limit { id,user_id:_, side:_, qty:_, price:_ } => *id,
             OrderType::Cancel { id } => *id,
+            OrderType::IOC { user_id:_, id, side:_, qty:_, price:_ } => *id,
+            OrderType::FOK { user_id:_, id, side:_, qty:_, price:_ } => *id,
         }
     }
 
@@ -116,6 +122,8 @@ impl OrderType {
             OrderType::Market { id:_,user_id:_,  side:_, qty:_ } => "market",
             OrderType::Limit { id:_,user_id:_,  side:_, qty:_, price:_ } => "limit",
             OrderType::Cancel { id:_ } => "cancel",
+            OrderType::IOC { id:_, user_id:_,  side:_, qty:_, price:_ } => "ioc",
+            OrderType::FOK { id:_, user_id:_,  side:_, qty:_, price:_ } => "fok",
         }
     }
 }
@@ -162,6 +170,30 @@ impl FromStr for OrderType {
                     return Err(OrderParseError::InvalidFieldSize)
                 }
                 Ok(OrderType::Limit { 
+                    id: fields[0].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
+                    user_id: fields[1].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
+                    side: Side::from_str(fields[3]).map_err(|_| OrderParseError::InvalidSide)?, 
+                    qty: fields[4].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
+                    price: fields[5].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?, 
+                })
+            },
+            "ioc" => {
+                if total_fields < 6 {
+                    return Err(OrderParseError::InvalidFieldSize)
+                }
+                Ok(OrderType::IOC { 
+                    id: fields[0].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
+                    user_id: fields[1].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
+                    side: Side::from_str(fields[3]).map_err(|_| OrderParseError::InvalidSide)?, 
+                    qty: fields[4].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
+                    price: fields[5].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?, 
+                })
+            },
+            "fok" => {
+                if total_fields < 6 {
+                    return Err(OrderParseError::InvalidFieldSize)
+                }
+                Ok(OrderType::FOK { 
                     id: fields[0].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
                     user_id: fields[1].parse::<u64>().map_err(|_| OrderParseError::InvalidInteger)?,
                     side: Side::from_str(fields[3]).map_err(|_| OrderParseError::InvalidSide)?, 
