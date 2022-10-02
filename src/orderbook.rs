@@ -275,7 +275,7 @@ impl OrderBook {
             }
             OrderType::Cancel { id } => {
                 self.cancel(id);
-                OrderEvent::Canceled { id }
+                OrderEvent::Cancelled { id }
             }
         }
     }
@@ -286,11 +286,13 @@ impl OrderBook {
                 if let Some(i) = queue.iter().position(|i| *i == id) {
                     queue.remove(i);
                 }
+                if queue.len() == 0 { self.asks.remove(&order.price); }
             }
             if let Some(ref mut queue) = self.bids.get_mut(&order.price) {
                 if let Some(i) = queue.iter().position(|i| *i == id) {
                     queue.remove(i);
                 }
+                if queue.len() == 0 { self.bids.remove(&order.price); }
             }
         }
         self.update_min_ask();
@@ -315,6 +317,7 @@ impl OrderBook {
             } else { 
                 self.arena[maker_id].qty -= qty;                
             }
+            if  entry.len() == 0 { levels.remove(&fill.price); }
         });
         self.update_max_bid();
         self.update_min_ask();
@@ -1576,7 +1579,7 @@ mod test {
     fn cancel_non_existing_order() {
         let (mut ob, _) = init_ob(vec![]);
         let result = ob.execute(OrderType::Cancel { id: 0 });
-        assert_eq!(result, OrderEvent::Canceled { id: 0 });
+        assert_eq!(result, OrderEvent::Cancelled { id: 0 });
         assert_eq!(ob.min_ask(), u64::MAX);
         assert_eq!(ob.max_bid(), 0);
         assert_eq!(ob._asks(), Vec::new());
@@ -1597,7 +1600,7 @@ mod test {
             }]);
             let result = ob.execute(OrderType::Cancel { id: 1 });
             assert_eq!(results, vec![OrderEvent::Open { id: 1 }]);
-            assert_eq!(result, OrderEvent::Canceled { id: 1 });
+            assert_eq!(result, OrderEvent::Cancelled { id: 1 });
             assert_eq!(ob.min_ask(), u64::MAX);
             assert_eq!(ob.max_bid(), 0);
             if *bid_ask == Side::Bid {
@@ -1648,7 +1651,7 @@ mod test {
                         OrderEvent::Open { id: 3 }
                     ]
                 );
-                assert_eq!(result, OrderEvent::Canceled { id: 1 });
+                assert_eq!(result, OrderEvent::Cancelled { id: 1 });
                 assert_eq!(ob.min_ask(), 399);
                 assert_eq!(ob.max_bid(), 398);
                 assert_eq!(ob._asks(), init_book(vec![(399, 2)]));
@@ -1677,7 +1680,7 @@ mod test {
                         OrderEvent::Open { id: 3 }
                     ]
                 );
-                assert_eq!(result, OrderEvent::Canceled { id: 1 });
+                assert_eq!(result, OrderEvent::Cancelled { id: 1 });
                 assert_eq!(ob.min_ask(), 398);
                 assert_eq!(ob.max_bid(), 0);
                 assert_eq!(

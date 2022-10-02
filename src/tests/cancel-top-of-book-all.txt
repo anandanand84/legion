@@ -1,0 +1,14 @@
+1,limit,ask,4,1007-open,1
+1,limit,ask,50,1006-open,2
+1,limit,ask,55,1005-open,3
+1,limit,ask,4,1002-open,4
+
+1,limit,bid,5,999-open,5
+1,limit,bid,4,998-open,6
+1,limit,bid,20,995-open,7
+1,limit,bid,2,994-open,8
+bbo-5,999,4,1002
+5,cancel-cancelled
+bbo-4,998,4,1002
+4,cancel-cancelled
+bbo-4,998,55,1005

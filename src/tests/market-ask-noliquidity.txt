@@ -5,5 +5,5 @@
 1,limit,bid,4,998-open,5
 1,limit,ask,4,1002-open,6
 1,market,ask,27-partiallyfilled,7
-1,market,bid,1-rejected,8
-bbo-,,4,1002
+1,market,ask,1-rejected,8
+bbo-4,1002

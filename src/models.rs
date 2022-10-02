@@ -205,7 +205,7 @@ pub enum OrderEvent {
     },
     /// Indicating that the corresponding order was removed from the order book.
     /// It is only sent in response to cancel orders.
-    Canceled {
+    Cancelled {
         /// The ID of the order this event is referring to.
         id: OrderId,
     },

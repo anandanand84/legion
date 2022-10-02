@@ -1,19 +1,46 @@
 <script lang="ts">
     import * as legion from "legion";
     import { Tooltip, TextArea, Button, Select, SelectItem, Slider, ButtonSet } from "carbon-components-svelte";
+    import LabelValue from "../../src/components/display/LabelValue.svelte";
     import DepthRow from "../../src/components/market-depth/DepthRow.svelte";
     import restingorder from '../../../src/tests/restingorder.txt?raw'
-    import marketordernoliquidityask from '../../../src/tests/marketorder-noliquidity-ask.txt?raw'
-    import marketordernoliquidity from '../../../src/tests/marketorder-noliquidity.txt?raw'
-    import LabelValue from "../../src/components/display/LabelValue.svelte";
+    
+    import MarketAskNoliquidity from '../../../src/tests/market-ask-noliquidity.txt?raw'
+    import MarketBidNoliquidity from '../../../src/tests/marke-bid-noliquidity.txt?raw'
+    
+    import LimitBidCompletelyfilledOneLevel from '../../../src/tests/limit-bid-completelyfilled-one-level.txt?raw'
+    import LimitBidPartiallyfilledOneLevel from '../../../src/tests/limit-bid-partiallyfilled-one-level.txt?raw'
+    import LimitBidCompletelyfilledTwoLevel from '../../../src/tests/limit-bid-completelyfilled-two-level.txt?raw'
+    import LimitBidPartiallyfilledTwoLevel from '../../../src/tests/limit-bid-partiallyfilled-two-level.txt?raw'
+    import LimitBidCompletelyfilledOneLevel1 from '../../../src/tests/limit-bid-completelyfilled-one-level-1.txt?raw'
+    import LimitBidCompletelyfilledTwoLevel1 from '../../../src/tests/limit-bid-completelyfilled-two-level-1.txt?raw'
 
-    console.log(marketordernoliquidity);
+    import CancelTopOfBookSome from  '../../../src/tests/cancel-top-of-book-some.txt?raw';
+    import CancelTopOfBookAll from  '../../../src/tests/cancel-top-of-book-all.txt?raw';
+    import CancelBookMiddle from  '../../../src/tests/cancel-book-middle.txt?raw';
+    
 
+    
     let tests = [
         { name: "--Select--", value: ""},
         { name: "Resting Orders", value: restingorder },
-        { name: "Market Bid No Liquidity", value: marketordernoliquidity },
-        { name: "Market Ask No Liquidity", value: marketordernoliquidityask },
+        
+        { name: "Market Bid No Liquidity", value: MarketBidNoliquidity },
+        { name: "Market Ask No Liquidity", value: MarketAskNoliquidity },
+        
+        { name: "Limit Bid Completelyfilled One Level", value: LimitBidCompletelyfilledOneLevel },
+
+        { name: "Limit Bid Partiallyfilled One Level", value: LimitBidPartiallyfilledOneLevel },
+        
+        { name: "Limit Bid Completelyfilled Two Level", value: LimitBidCompletelyfilledTwoLevel },
+        { name: "Limit Bid Partiallyfilled Two Level", value: LimitBidPartiallyfilledTwoLevel },
+
+        { name: "Limit Bid Completelyfilled One Level1", value: LimitBidCompletelyfilledOneLevel1 },
+        { name: "Limit Bid Completelyfilled Two Level1", value: LimitBidCompletelyfilledTwoLevel1 },
+
+        { name: "Cancel Some Top of Book", value: CancelTopOfBookSome },
+        { name: "Cancel All Top of Book", value: CancelTopOfBookAll },
+        { name: "CancelBookMiddle", value: CancelBookMiddle },
     ]
 
     let spreadElement: HTMLElement = null;
@@ -78,14 +105,29 @@
     async function processAllOrders() {
         for (const test of tests) {
             clearBook();
+            neworders = test.value;
             await processOrders(test.value);
         }
     }
 
+    let textarea:any=null;
+
+    function showSelection(start:number, end:number) {
+        document.getSelection()?.removeAllRanges();
+        textarea.focus();
+        textarea.setSelectionRange(start, end);
+    }
+
     async function processOrders(testorders:string) {
+        let start = 0;
         let orders = testorders.split('\n');
         for (const orderString of orders) {
+            if (orderString.length == 0) {
+                start = start + 1;
+                continue;
+            }
             await sleep(delay)
+            showSelection(start, start+orderString.length)
             let [order, result] = orderString.split('-')
             if (order.length != 0) {
                 let last_processed = legion.get_last_sequence();
@@ -141,7 +183,10 @@
                 events = [...events, parsed]
                 book = legion.get_book_state();
             }   
+
+            start = start+orderString.length + 1;
         }
+        document.getSelection()?.removeAllRanges();
     }
 </script>
 
@@ -157,6 +202,11 @@
         display: none;
     }
 
+    textarea::selection {
+        color: red;
+        background: yellow;
+    }
+    
     .event-red {
         background-color: #99333b;
     }
@@ -253,7 +303,7 @@
                 {/each}
             </Select>
         </div>
-        <textarea style="padding:10px;font-size:1.2rem; line-height:2rem; background:#393939;" bind:value="{neworders}" cols="50" class="flex-1 mt-3a"></textarea>
+        <textarea bind:this={textarea} style="padding:10px;font-size:1.2rem; line-height:2rem; background:#393939;" bind:value="{neworders}" cols="50" class="flex-1 mt-3a"></textarea>
         <ButtonSet>
             <Button on:click={()=> clearBook()}>Clear Book</Button> <Button on:click={()=> processOrders(neworders)}>Test</Button> <Button on:click={processAllOrders}>Test ALL</Button>
         </ButtonSet>
