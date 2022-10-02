@@ -295,7 +295,18 @@ impl OrderBook {
                     }
                 }
             },
-            OrderType::FOK { id, user_id, side, qty, price } => todo!(),
+            OrderType::FOK { id, user_id, side, qty, price } =>  {
+                let (fills, partial, filled_qty) = self.ioc(id, user_id, side, qty, price);
+                if fills.is_empty() || partial {
+                    OrderEvent::Cancelled { id }
+                } else {
+                    OrderEvent::Filled {
+                        id,
+                        filled_qty,
+                        fills,
+                    }
+                }
+            }
         }
     }
 
@@ -374,13 +385,17 @@ impl OrderBook {
         match side {
             Side::Bid => {
                 remaining_qty = self.match_with_asks(id, qty, &mut fills, Some(price));
-                self.finalize_execution(&fills);
                 partial = remaining_qty > 0;
+                if !partial {
+                    self.finalize_execution(&fills);
+                }
             }
             Side::Ask => {
                 remaining_qty = self.match_with_bids(id, qty, &mut fills, Some(price));
-                self.finalize_execution(&fills);
                 partial = remaining_qty > 0;
+                if !partial {
+                    self.finalize_execution(&fills);
+                }
             }
         }
 

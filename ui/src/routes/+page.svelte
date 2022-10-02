@@ -22,9 +22,14 @@
     import CancelTopOfBookSome from  '../../../src/tests/cancel-top-of-book-some.txt?raw';
     import CancelTopOfBookAll from  '../../../src/tests/cancel-top-of-book-all.txt?raw';
     import CancelBookMiddle from  '../../../src/tests/cancel-book-middle.txt?raw';
+    
     import IocBidPartiallyfilled from '../../../src/tests/ioc-bid-partiallyfilled.txt?raw';
     import IocBidCompletelyfillled from '../../../src/tests/ioc-bid-completelyfilled.txt?raw';
     import IocBidCancelled from '../../../src/tests/ioc-bid-cancelled.txt?raw';
+
+    import FokBidPartialCancelled from '../../../src/tests/fok-bid-partialcancelled.txt?raw';
+    import FokBidCompletelyfillled from '../../../src/tests/fok-bid-completelyfilled.txt?raw';
+    import FokBidCancelled from '../../../src/tests/fok-bid-cancelled.txt?raw';
 
 
     let paused = true;
@@ -60,7 +65,11 @@
 
         { name: "IOC bid Cancelled", value: IocBidCancelled },
         { name: "IOC bid fully filled", value: IocBidCompletelyfillled },
-        { name: "IOC bid partially filled", value: IocBidPartiallyfilled }
+        { name: "IOC bid partially filled", value: IocBidPartiallyfilled },
+
+        { name: "FOK bid Cancelled", value: FokBidCancelled },
+        { name: "FOK bid fully filled", value: FokBidCompletelyfillled },
+        { name: "FOK bid partially cancelled", value: FokBidPartialCancelled }
     ]
 
     let spreadElement: HTMLElement = null;
